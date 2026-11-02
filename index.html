@@ -594,12 +594,12 @@ const CONFIG = {
 
   /* WhatsApp */
   WHATSAPP_USUARIO: '@Barakah.co',            // Nombre visible
-  WHATSAPP_NUMERO: '573147779678',            // Número de WhatsApp con indicativo 57
+  WHATSAPP_NUMERO: '573003220443',            // Número de WhatsApp con indicativo 57
   /* Enlace de WhatsApp que usan TODOS los botones. Los enlaces por nombre de usuario (wa.me/Barakah.co)
      todavía no funcionan en Colombia, por eso se usa el número. Si WhatsApp Business les da un
      "enlace corto" (wa.me/message/…), puede pegarse aquí, pero ese enlace no admite mensaje prellenado. */
-  WHATSAPP_URL: 'https://wa.me/573147779678',
-  TELEFONOS: ['314 777 9678', '300 700 6107', '304 653 3020'],
+  WHATSAPP_URL: 'https://wa.me/573003220443',
+  TELEFONOS: ['300 322 0443', '300 700 6107', '304 653 3020'],   // El primero es el WhatsApp de Barakah
   REDES: {
     instagram: 'https://www.instagram.com/barakah.co',
     facebook:  'https://www.facebook.com/profile.php?id=61558807467208',
@@ -615,7 +615,7 @@ const CONFIG = {
   /* Medios de pago por transferencia con confirmación manual desde el panel */
   PAGOS: {
     HORAS_RESERVA: 12,  // Horas que se apartan las boletas mientras llega el comprobante
-    NEQUI: {ACTIVO: true, NUMERO: '314 777 9678', TITULAR: ''},   // TITULAR: POR CONFIRMAR
+    NEQUI: {ACTIVO: true, NUMERO: '314 777 9678', TITULAR: ''},   // Cuenta Nequi para pagos (no es el WhatsApp). TITULAR: POR CONFIRMAR
     BANCOLOMBIA: {ACTIVO: true, TIPO: 'Cuenta de ahorros', NUMERO: '10537311952', TITULAR: '', DOCUMENTO: ''}  // POR CONFIRMAR
   },
   /* Pasarela Wompi: desactivada por decisión de la Corporación (se puede reactivar luego) */
@@ -937,7 +937,7 @@ function EVENTO_RESPIRA() {
     descripcion: '¿Hace cuánto no te detienes a respirar de verdad?\n\nVas de prisa entre el trabajo, las pantallas, el tráfico y los pendientes. El cuerpo cansado, la mente llena de ruido… y casi nunca queda un momento para ti.\n\nCuando no paramos, todo se acumula: el estrés, la tensión, esa sensación de estar viviendo en automático. Y lo que más necesitamos —sentir, conectar y volver a nosotros— siempre queda para después.\n\nEste es tu momento. La Corporación Cultural y Artística Barakah presenta RESPIRA, un espectáculo de danza, música y teatro que te invita a hacer una pausa, dejarte llevar y reconectar con lo esencial.\n\nVen, haz una pausa… y respira con nosotros. 💜',
     artistas: 'Elenco de danza, música y teatro de la Corporación Cultural y Artística Barakah.\n\n[Por completar: nombres de intérpretes, músicos y dirección artística].',
     duracion: 'Por confirmar',
-    condiciones: '• Presenta tu boleta con código QR, impresa o en el celular. Cada código permite un solo ingreso.\n• Boleta de estudiante: presenta tu carné estudiantil vigente al ingresar.\n• Apertura de puertas: 30 minutos antes de la función [por confirmar].\n• Edad mínima de ingreso: [por confirmar].\n• Una vez iniciada la función, el ingreso queda sujeto a las indicaciones del personal de sala.\n• Informes y reservas: 314 777 9678 · 300 700 6107.',
+    condiciones: '• Presenta tu boleta con código QR, impresa o en el celular. Cada código permite un solo ingreso.\n• Boleta de estudiante: presenta tu carné estudiantil vigente al ingresar.\n• Apertura de puertas: 30 minutos antes de la función [por confirmar].\n• Edad mínima de ingreso: [por confirmar].\n• Una vez iniciada la función, el ingreso queda sujeto a las indicaciones del personal de sala.\n• Informes y reservas: WhatsApp 300 322 0443 · 300 700 6107.',
     localidades: [{id: 'general', nombre: 'General', precio: 25000, nota: ''}, {id: 'estudiantes', nombre: 'Estudiantes', precio: 20000, nota: 'Presenta tu carné de estudiante en el check-in del teatro.'}],
     maxPorCompra: 10, estado: 'PUBLICADO', destacado: true
   };
