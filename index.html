@@ -466,6 +466,9 @@ td .btn{margin:2px}
 @keyframes trazo{to{stroke-dashoffset:0}}
 .veredicto-titulo{font-family:var(--f-titulo);font-weight:700;font-size:clamp(2rem,9vw,3rem);letter-spacing:.08em;line-height:1.1}
 .si .veredicto-titulo{color:#4ade80}.no .veredicto-titulo{color:#f87171}
+.veredicto-estudiante{margin:12px auto 4px;max-width:440px;background:#f59e0b;color:#000;border-radius:14px;padding:12px 14px;font-family:var(--f-titulo);font-weight:700;font-size:1.15rem;letter-spacing:.06em;line-height:1.25;box-shadow:0 0 0 6px rgba(245,158,11,.25);animation:latir 1.2s ease-in-out 3}
+.veredicto-estudiante span{font-size:1.6rem}
+@keyframes latir{50%{transform:scale(1.04)}}
 .veredicto-sub{font-weight:600;font-size:1.1rem;margin:8px 0 14px}
 .veredicto-datos{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;background:rgba(0,0,0,.25);border-radius:14px;padding:14px;margin:0}
 .veredicto-datos dt{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--color-brillo);font-weight:600}
@@ -644,6 +647,9 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
 const urlSitio = () => CONFIG.SITIO_URL || (location.origin + location.pathname);
 const waTexto = t => CONFIG.WHATSAPP_URL + (CONFIG.WHATSAPP_URL.includes('?') ? '&' : '?') + 'text=' + encodeURIComponent(t);
 const sinTildes = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+/* Boletas de estudiante: se reconocen por el nombre del tipo de boleta */
+const esEstudiante = nombre => /estudiant/.test(sinTildes(nombre || ''));
+const cantEstudiantes = items => (items || []).filter(i => esEstudiante(i.nombre)).reduce((a, i) => a + Number(i.cantidad || 0), 0);
 const NOMBRE_METODO = {NEQUI: 'Nequi', BANCOLOMBIA: 'Transferencia Bancolombia', GRATIS: 'Evento gratuito', WOMPI: 'Pago en línea (Wompi)', NEQUI_MANUAL: 'Nequi'};
 
 function fechaLarga(f) {
@@ -1335,10 +1341,11 @@ async function vistaOrden(main, referencia, clave) {
           <div class="pago-fila" style="border-color:var(--color-principal);background:rgba(250,186,47,.1)"><div><small>Referencia de tu compra: escríbela o pégala junto al comprobante cuando lo envíes</small><b class="referencia" style="font-size:1.5rem">${esc(o.referencia)}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(o.referencia)}">Copiar</button></div>
           <div class="pago-fila"><div><small>WhatsApp para enviar el comprobante</small><b>${esc(CONFIG.TELEFONOS[0])}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(CONFIG.TELEFONOS[0].replace(/\s/g, ''))}">Copiar</button></div>
         </div>
+        ${cantEstudiantes(o.items) ? `<div class="nota" style="margin:16px 0 0;border-color:#f59e0b;background:rgba(245,158,11,.12)">🎓 <b>Tu compra incluye ${cantEstudiantes(o.items)} boleta${cantEstudiantes(o.items) > 1 ? 's' : ''} de estudiante.</b> Junto con el comprobante, envía una foto del carné estudiantil vigente de cada estudiante. Sin carné, en la entrada se cobra la diferencia con la boleta general.</div>` : ''}
         <ol class="pasos-pago">
           <li><span>Transfiere el valor exacto desde tu app.</span></li>
           <li><span>Toma captura del comprobante.</span></li>
-          <li><span>Envía la captura al WhatsApp <b>${esc(CONFIG.TELEFONOS[0])}</b> y escribe o pega tu referencia <b class="referencia">${esc(o.referencia)}</b> en el mismo mensaje.</span></li>
+          <li><span>Envía la captura al WhatsApp <b>${esc(CONFIG.TELEFONOS[0])}</b> y escribe o pega tu referencia <b class="referencia">${esc(o.referencia)}</b> en el mismo mensaje.${cantEstudiantes(o.items) ? ` <b style="color:var(--color-brillo)">Envía también una foto del carné estudiantil vigente de ${cantEstudiantes(o.items) === 1 ? 'la persona que usará la boleta de estudiante' : `cada una de las ${cantEstudiantes(o.items)} personas que usarán boletas de estudiante`}.</b>` : ''}</span></li>
           <li><span>Al confirmar el pago te enviamos las boletas con código QR a <b>${esc(o.email)}</b>.</span></li>
         </ol>
         <div class="acciones"><span></span><button class="btn btn-sec" type="button" id="refrescar">Ya me confirmaron: ver boletas</button></div>
@@ -1598,6 +1605,7 @@ function veredictoHTML(r, {compacto = false} = {}) {
   return `<div class="veredicto ${ok ? 'si' : 'no'} ${compacto ? 'compacto' : ''}" role="alert">
     <div class="veredicto-icono">${icono}</div>
     <div class="veredicto-titulo">${ok ? 'VERIFICADO' : 'NO VERIFICADO'}</div>
+    ${ok && esEstudiante(b.localidad) ? '<div class="veredicto-estudiante" role="alert">🎓 BOLETA DE ESTUDIANTE<br><span>PIDE EL CARNÉ</span></div>' : ''}
     <p class="veredicto-sub">${esc(sub)}</p>
     ${b.evento || b.titular ? `<dl class="veredicto-datos">${b.evento ? `<div><dt>Evento</dt><dd>${esc(b.evento)}</dd></div>` : ''}${b.titular ? `<div><dt>Titular</dt><dd>${esc(b.titular)}</dd></div>` : ''}${b.localidad ? `<div><dt>Localidad</dt><dd>${esc(b.localidad)}</dd></div>` : ''}<div><dt>Código</dt><dd>${esc(b.codigo || '')}</dd></div></dl>` : (b.codigo ? `<p class="mini">${esc(b.codigo)}</p>` : '')}
     ${ok && !r.registrado && !compacto ? '<p class="veredicto-nota">El ingreso se registra cuando el personal de Barakah escanea esta boleta con un celular autorizado.</p>' : ''}
@@ -1898,12 +1906,17 @@ function dialogoConfirmar(o) {
       <div class="pago-fila"><div><small>Medio</small><b>${esc(NOMBRE_METODO[o.metodo] || o.metodo)}</b></div></div>
       <div class="pago-fila"><div><small>Comprador</small><b>${esc(o.nombre)}</b><small>${esc(o.email)} · ${esc(o.telefono)}</small></div></div>
       <div class="pago-fila"><div><small>Referencia · Boletas</small><b>${esc(o.referencia)}</b><small>${esc(o.detalle || o.items.map(i => i.cantidad + ' ' + i.nombre).join(' + '))}</small></div></div></div>
+    ${cantEstudiantes(o.items) ? `<div class="nota" style="margin:0 0 14px;border-color:#f59e0b;background:rgba(245,158,11,.12)">🎓 <b>Esta compra incluye ${cantEstudiantes(o.items)} boleta${cantEstudiantes(o.items) > 1 ? 's' : ''} de estudiante.</b> Revisa en el WhatsApp ${cantEstudiantes(o.items) === 1 ? 'la foto de 1 carné' : `las fotos de ${cantEstudiantes(o.items)} carnés`} estudiantil${cantEstudiantes(o.items) > 1 ? 'es' : ''} vigente${cantEstudiantes(o.items) > 1 ? 's' : ''}.
+      <label class="check" style="margin-top:10px"><input type="checkbox" id="ok-carnes"><span>Revisé ${cantEstudiantes(o.items) === 1 ? 'el carné' : `los ${cantEstudiantes(o.items)} carnés`} y ${cantEstudiantes(o.items) === 1 ? 'está vigente' : 'están vigentes'}.</span></label></div>` : ''}
     <div class="campo"><label for="comp">Número o nota del comprobante (opcional)</label><input id="comp" maxlength="120" placeholder="Ej.: M12345678 · 1 nov 9:15 p. m."></div>
     <p class="nota" style="margin-top:14px">Antes de confirmar, verifica en tu app de ${o.metodo === 'BANCOLOMBIA' ? 'Bancolombia' : 'Nequi'} que el dinero ingresó. Al confirmar: se emiten las boletas, se envían con su QR al correo del comprador y se actualiza la base de datos en Excel.</p>
     <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-dorado" type="button" id="ok-confirmar">Confirmar y enviar boletas</button></div>`);
   $('#ok-confirmar', m.caja).addEventListener('click', async e => {
+    const carnes = $('#ok-carnes', m.caja);
+    if (carnes && !carnes.checked) { avisar('Marca la casilla cuando hayas revisado los carnés de estudiante.', 'error'); carnes.focus(); return; }
     const b = e.currentTarget; bloquear(b, 'Confirmando y enviando…');
-    try { const r = await llamarAdmin('confirmarPagoManual', {referencia: o.referencia, comprobante: $('#comp', m.caja).value.trim()}); m.cerrar(); avisar(r.mensaje || 'Pago confirmado.', 'ok', 9000); pintarAdmin(); }
+    const nota = [$('#comp', m.caja).value.trim(), carnes ? 'Carnés revisados' : ''].filter(Boolean).join(' · ');
+    try { const r = await llamarAdmin('confirmarPagoManual', {referencia: o.referencia, comprobante: nota}); m.cerrar(); avisar(r.mensaje || 'Pago confirmado.', 'ok', 9000); pintarAdmin(); }
     catch (err) { desbloquear(b); avisar(err.message, 'error', 8000); }
   });
 }
