@@ -591,8 +591,11 @@ const CONFIG = {
 
   /* WhatsApp */
   WHATSAPP_USUARIO: '@Barakah.co',            // Nombre visible
-  WHATSAPP_NUMERO: '573147779678',            // Solo para llamadas (tel:)
-  WHATSAPP_URL: 'https://wa.me/Barakah.co',   // Enlace al usuario @Barakah.co. Todos los botones de WhatsApp usan este enlace.
+  WHATSAPP_NUMERO: '573147779678',            // Número de WhatsApp con indicativo 57
+  /* Enlace de WhatsApp que usan TODOS los botones. Los enlaces por nombre de usuario (wa.me/Barakah.co)
+     todavía no funcionan en Colombia, por eso se usa el número. Si WhatsApp Business les da un
+     "enlace corto" (wa.me/message/…), puede pegarse aquí, pero ese enlace no admite mensaje prellenado. */
+  WHATSAPP_URL: 'https://wa.me/573147779678',
   TELEFONOS: ['314 777 9678', '300 700 6107', '304 653 3020'],
   REDES: {
     instagram: 'https://www.instagram.com/barakah.co',
