@@ -824,7 +824,8 @@ const ApiDemo = (() => {
       const metodo = total === 0 ? 'GRATIS' : d.metodo;
       if (!['GRATIS', 'NEQUI', 'BANCOLOMBIA'].includes(metodo)) fallo('Medio de pago no válido.');
       const c = d.comprador, ahora = Date.now();
-      const o = {referencia: 'BKH' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + azar(5), clave: azar(16, 'abcdefghijkmnpqrstuvwxyz23456789'),
+      let ref; do { ref = 'BK-' + azar(5, 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'); } while (db.ordenes.some(x => x.referencia === ref));
+      const o = {referencia: ref, clave: azar(16, 'abcdefghijkmnpqrstuvwxyz23456789'),
         eventoId: ev.id, eventoNombre: ev.nombre, creada: new Date().toISOString(), nombre: c.nombre, tipoDoc: c.tipoDoc, documento: c.documento, email: c.email.toLowerCase(),
         telefono: c.telefono, ciudad: c.ciudad, items, detalle: items.map(i => i.cantidad + ' ' + i.nombre).join(' + '), cantidad, total, metodo,
         estado: metodo === 'GRATIS' ? 'GRATIS' : 'RESERVADA', vence: new Date(ahora + CONFIG.PAGOS.HORAS_RESERVA * 3600e3).toISOString(),
@@ -1071,7 +1072,7 @@ async function vistaCatalogo(main) {
         <div class="hero-datos"><span>📅 ${esc(fechaLarga(dest.fecha))}</span><span>🕗 ${esc(horaBonita(dest.hora))}</span><span>🎭 ${esc(dest.lugar)}, ${esc(dest.ciudad || '')}</span></div>
         <div class="hero-acciones">
           <a class="btn btn-dorado" href="#/${venta.puede ? 'comprar' : 'evento'}/${esc(dest.id)}">${venta.puede ? (venta.gratis ? 'Reservar boletas' : 'Comprar boletas') : 'Ver evento'}</a>
-          <a class="btn btn-sec" href="#/evento/${esc(dest.id)}">Más información</a>
+          <a class="btn btn-sec" href="#/evento/${esc(dest.id)}" data-bajar-info>Más información</a>
           <span class="chip chip-oro">${esc(precioDesde(dest))}</span>
         </div>
         ${tickerHTML(lineasTicker(proximos.filter(e => e.estado === 'PUBLICADO')), 'Cartelera Barakah')}
@@ -1081,11 +1082,27 @@ async function vistaCatalogo(main) {
     <section class="hero"><div class="contenedor" style="text-align:center"><img src="${CONFIG.LOGO_PRINCIPAL}" alt="" style="width:140px;margin:0 auto 18px"><p class="eyebrow">${esc(CONFIG.ENTIDAD)}</p><h1>${esc(CONFIG.ESLOGAN)}</h1></div></section>`;
 
   const faqTop = textosFAQ().slice(0, 4);
-  main.innerHTML = `${hero}
-    <section class="seccion"><div class="contenedor">
+  const otros = proximos.filter(e => !dest || e.id !== dest.id);
+  const bloque = (titulo, texto) => texto ? `<section class="bloque-info"><h2>${titulo}</h2><div>${parrafos(texto)}</div></section>` : '';
+  const info = dest ? `<section class="seccion"><div class="contenedor ficha">
+      <div>${bloque('Sobre el evento', dest.descripcion)}${bloque('Artistas', dest.artistas)}${bloque('Condiciones de ingreso', dest.condiciones)}</div>
+      <aside class="ficha-flyer"><div class="tarjeta">
+        <h2 style="font-size:1.25rem;color:var(--color-brillo)">Boletas</h2>
+        <ul class="datos-lista" style="margin:10px 0">
+          <li><span class="ico">${ICONOS.calendario}</span><div><strong>${esc(fechaLarga(dest.fecha))}</strong><span class="secundario">${esc(horaBonita(dest.hora))}${dest.apertura ? ' · Puertas ' + esc(horaBonita(dest.apertura)) : ''}${dest.duracion ? ' · ' + esc(dest.duracion) : ''}</span></div></li>
+          <li><span class="ico">${ICONOS.lugar}</span><div><strong>${esc(dest.lugar)}</strong><span class="secundario">${esc(dest.direccion)}${dest.ciudad ? ', ' + esc(dest.ciudad) : ''} · <a href="${mapaURL(dest)}" target="_blank" rel="noopener">Ver en el mapa</a></span></div></li>
+          ${dest.referenciaLugar ? `<li><span class="ico">${ICONOS.metro}</span><div><strong>Cómo llegar</strong><span class="secundario">${esc(dest.referenciaLugar)}</span></div></li>` : ''}
+        </ul>
+        <div class="precios">${dest.localidades.map(l => `<div class="precio-fila"><div><span class="subtitulo">${esc(l.nombre)}</span>${l.nota ? `<br><span class="secundario mini">${esc(l.nota)}</span>` : ''}</div><b>${pesos(l.precio)}</b></div>`).join('')}</div>
+        <p class="secundario mini">Precio final: sin cargo por servicio ni IVA adicional.</p>
+        ${venta.clave !== 'finalizado' && venta.clave !== 'cancelado' ? barraAforo(dest) : ''}
+        ${venta.puede ? `<a class="btn btn-dorado btn-bloque" href="#/comprar/${esc(dest.id)}">${venta.gratis ? 'Reservar boletas' : 'Comprar boletas'}</a>` : `<span class="btn btn-bloque" aria-disabled="true">${esc(venta.texto)}</span>`}
+      </div></aside></div></section>` : '';
+  main.innerHTML = `${hero}${info}
+    ${otros.length ? `<section class="seccion"><div class="contenedor">
       <div class="seccion-cab"><h2>Próximos eventos</h2><span class="secundario">${esc(CONFIG.ESLOGAN)}</span></div>
-      ${proximos.length ? `<div class="rejilla">${proximos.map(e => tarjetaEvento(e, false)).join('')}</div>` : '<div class="vacio tarjeta"><p class="subtitulo">Pronto anunciaremos nuevos eventos.</p><p class="secundario">Síguenos en redes sociales para enterarte primero.</p></div>'}
-    </div></section>
+      <div class="rejilla">${otros.map(e => tarjetaEvento(e, false)).join('')}</div>
+    </div></section>` : ''}
     ${pasados.length ? `<section class="seccion"><div class="contenedor">
       <div class="seccion-cab"><h2>Eventos realizados</h2><span class="secundario">Gracias a todos los que nos acompañaron</span></div>
       <div class="rejilla">${pasados.map(e => tarjetaEvento(e, true)).join('')}</div></div></section>` : ''}
@@ -1094,6 +1111,8 @@ async function vistaCatalogo(main) {
       <div class="faq-lista" style="max-width:none">${faqTop.map((f, i) => faqItemHTML(f, i)).join('')}</div>
     </div></section>`;
   activarFAQ(main);
+  const bajar = $('[data-bajar-info]', main);
+  if (bajar && $('.bloque-info', main)) bajar.addEventListener('click', e => { e.preventDefault(); $('.bloque-info', main).scrollIntoView({behavior: 'smooth', block: 'start'}); });
 }
 
 /* ==========================================================================
@@ -1307,23 +1326,22 @@ async function vistaOrden(main, referencia, clave) {
       <section class="zona-boletas" aria-label="Tus boletas">${o.boletas.map((b, i) => boletaHTML(b, ev, i, o.boletas.length)).join('')}</section>${resumen}`;
   } else if (o.estado === 'RESERVADA') {
     const dp = datosDePago(o.metodo);
-    const textoWa = `Hola Barakah 💜 Envío el comprobante de pago.\nReferencia: ${o.referencia}\nNombre: ${o.nombre}\nEvento: ${ev.nombre}\nBoletas: ${o.items.map(i => i.cantidad + ' ' + i.nombre).join(', ')}\nTotal: ${pesos(o.total)}\nMedio: ${dp.titulo}`;
     html = cab('', 'Tus boletas están apartadas', `Tienes <span class="cuenta-atras" id="cuenta-atras"></span> para pagar (hasta el ${esc(fechaHora(o.vence))}).`) + `
       <div class="tarjeta" style="max-width:680px;margin:0 auto">
         <h2 style="font-size:1.3rem">Paga por ${esc(dp.titulo)}</h2>
         <div class="pago-datos">
           <div class="pago-fila monto"><div><small>Valor exacto a transferir</small><b>${pesos(o.total)}</b></div><button class="btn btn-sec btn-peq" data-copiar="${o.total}">Copiar</button></div>
           ${dp.filas.map(([k, v, copiar]) => `<div class="pago-fila"><div><small>${esc(k)}</small><b>${esc(v)}</b></div>${copiar ? `<button class="btn btn-sec btn-peq" data-copiar="${esc(String(v).replace(/\s/g, ''))}">Copiar</button>` : ''}</div>`).join('')}
-          <div class="pago-fila"><div><small>Referencia (escríbela en la descripción)</small><b class="referencia">${esc(o.referencia)}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(o.referencia)}">Copiar</button></div>
+          <div class="pago-fila" style="border-color:var(--color-principal);background:rgba(250,186,47,.1)"><div><small>Referencia de tu compra: escríbela o pégala junto al comprobante cuando lo envíes</small><b class="referencia" style="font-size:1.5rem">${esc(o.referencia)}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(o.referencia)}">Copiar</button></div>
+          <div class="pago-fila"><div><small>WhatsApp para enviar el comprobante</small><b>${esc(CONFIG.TELEFONOS[0])}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(CONFIG.TELEFONOS[0].replace(/\s/g, ''))}">Copiar</button></div>
         </div>
         <ol class="pasos-pago">
           <li><span>Transfiere el valor exacto desde tu app.</span></li>
           <li><span>Toma captura del comprobante.</span></li>
-          <li><span>Envíalo por WhatsApp con el botón de abajo (el mensaje ya lleva tu referencia).</span></li>
+          <li><span>Envía la captura al WhatsApp <b>${esc(CONFIG.TELEFONOS[0])}</b> y escribe o pega tu referencia <b class="referencia">${esc(o.referencia)}</b> en el mismo mensaje.</span></li>
           <li><span>Al confirmar el pago te enviamos las boletas con código QR a <b>${esc(o.email)}</b>.</span></li>
         </ol>
-        <div class="acciones"><a class="btn btn-dorado" target="_blank" rel="noopener" href="${waTexto(textoWa)}">Enviar comprobante por WhatsApp</a>
-          <button class="btn btn-sec" type="button" id="refrescar">Ya me confirmaron: ver boletas</button></div>
+        <div class="acciones"><span></span><button class="btn btn-sec" type="button" id="refrescar">Ya me confirmaron: ver boletas</button></div>
         <p class="mini secundario" style="margin-top:14px">Si no recibimos el pago antes del plazo, las boletas se liberan automáticamente. Guarda esta página o tu referencia: con ella y tu correo puedes consultar tu compra en “Mis boletas”.</p>
       </div>${resumen}`;
   } else {
@@ -1398,7 +1416,7 @@ function calendarioURL(ev) {
 async function vistaConsultar(main) {
   main.innerHTML = `<div class="contenedor" style="max-width:620px">
     <h1 style="margin-top:30px;font-size:clamp(1.7rem,4vw,2.4rem)">Mis boletas</h1>
-    <p class="secundario">Recupera tus boletas con la referencia de compra (por ejemplo, BKH261128-ABC12) y el correo que usaste.</p>
+    <p class="secundario">Recupera tus boletas con la referencia de compra (por ejemplo, BK-7Q2MX) y el correo que usaste.</p>
     <form class="tarjeta form-grid" id="form-consulta" novalidate>
       <div class="campo"><label for="c-ref">Referencia de compra</label><input id="c-ref" name="ref" autocomplete="off" style="text-transform:uppercase"></div>
       <div class="campo"><label for="c-email">Correo electrónico</label><input id="c-email" name="email" type="email" autocomplete="email"></div>
