@@ -1852,7 +1852,7 @@ async function adminVentas(caja) {
         <td>${o.items.map(i => `${i.cantidad} × ${esc(i.nombre)}`).join('<br>')}${o.codigos ? `<br><span class="mini secundario">${esc(o.codigos)}</span>` : ''}</td><td>${pesos(o.total)}</td><td>${esc(NOMBRE_METODO[o.metodo] || o.metodo)}${o.comprobante ? `<br><span class="mini secundario">Comp.: ${esc(o.comprobante)}</span>` : ''}</td><td><span class="chip ${cl}">${esc(et)}</span></td>
         <td>${porConfirmar.includes(o) ? `<button class="btn btn-peq" data-acc="confirmar" data-ref="${esc(o.referencia)}">Confirmar pago</button>` : ''}
           ${emitida ? `<button class="btn btn-sec btn-peq" data-acc="ver" data-ref="${esc(o.referencia)}">Ver boletas</button><button class="btn btn-sec btn-peq" data-acc="correo" data-ref="${esc(o.referencia)}">Reenviar correo</button>` : ''}
-          <button class="btn btn-sec btn-peq" data-acc="wa" data-ref="${esc(o.referencia)}">WhatsApp</button>
+          <button class="btn btn-sec btn-peq" data-acc="wa" data-ref="${esc(o.referencia)}" title="Abre el chat con el comprador desde el WhatsApp de este equipo">WhatsApp ${esc(o.telefono)}</button>
           ${['PAGADA', 'GRATIS', 'RESERVADA'].includes(o.estado) ? `<button class="btn btn-peligro btn-peq" data-acc="anular" data-ref="${esc(o.referencia)}">Anular</button>` : ''}</td></tr>`;
     }).join('') || `<tr><td colspan="9" class="secundario">${v.ordenes.length ? 'Sin resultados.' : 'Aún no hay compras para este evento.'}</td></tr>`;
     etiquetarTablas(caja);
@@ -1885,8 +1885,8 @@ async function adminVentas(caja) {
       // Solo un mensaje de texto: las boletas con QR se envían por correo (por WhatsApp no llegan bien).
       const pn = o.nombre.split(' ')[0];
       const t = ['PAGADA', 'GRATIS'].includes(o.estado)
-        ? `Hola ${pn} 💜 Te escribimos de Barakah. Tu compra ${o.referencia} para ${o.eventoNombre} está confirmada: te enviamos las boletas con código QR a tu correo ${o.email}. Si no las ves, revisa spam o promociones.`
-        : `Hola ${pn} 💜 Te escribimos de Barakah sobre tu reserva ${o.referencia} para ${o.eventoNombre}.`;
+        ? `Hola ${pn}, te escribimos de la Corporación Cultural y Artística Barakah. Tu compra ${o.referencia} para ${o.eventoNombre} está confirmada: te enviamos las boletas con código QR a tu correo ${o.email}. Si no las ves, revisa spam o promociones.`
+        : `Hola ${pn}, te escribimos de la Corporación Cultural y Artística Barakah sobre tu reserva ${o.referencia} para ${o.eventoNombre}.`;
       window.open(`https://wa.me/57${o.telefono}?text=${encodeURIComponent(t)}`, '_blank', 'noopener');
     }
   };
