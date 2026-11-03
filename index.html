@@ -472,6 +472,7 @@ td .btn{margin:2px}
 .veredicto-sub{font-weight:600;font-size:1.1rem;margin:8px 0 14px}
 .veredicto-datos{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;background:rgba(0,0,0,.25);border-radius:14px;padding:14px;margin:0}
 .veredicto-datos dt{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--color-brillo);font-weight:600}
+.veredicto-datos .ancho-v{grid-column:1/-1}
 .veredicto-datos dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .veredicto-nota{font-size:.85rem;color:var(--texto-sec);margin:14px 0 0}
 .veredicto.compacto{padding:18px 14px;margin-top:16px}
@@ -771,11 +772,12 @@ const ApiDemo = (() => {
   const publico = ev => { const oc = ocupacion(ev.id); return Object.assign({}, ev, oc, {disponibles: Math.max(0, Number(ev.aforo) - oc.vendidas - oc.reservadas)}); };
   function vencer() { const ahora = Date.now(); db.ordenes.forEach(o => { if (['PENDIENTE', 'RESERVADA'].includes(o.estado) && new Date(o.vence).getTime() < ahora) o.estado = 'VENCIDA'; }); }
   function emitir(o) {
-    const codigos = [];
+    const codigos = [], asis = o.asistentes || []; let n = 0;
     o.items.forEach(it => { for (let i = 0; i < it.cantidad; i++) {
-      const cod = `BKH-${azar(4)}-${azar(4)}`; codigos.push(cod);
+      const cod = `BKH-${azar(4)}-${azar(4)}`; codigos.push(cod); const a = asis[n++] || {};
       db.boletas.push({codigo: cod, firma: azar(12, '0123456789abcdef'), referencia: o.referencia, eventoId: o.eventoId, eventoNombre: o.eventoNombre,
-        localidad: it.nombre, precio: it.precio, titular: o.nombre, email: o.email, telefono: o.telefono, estado: 'VALIDA', emitida: new Date().toISOString(), ingreso: ''});
+        localidad: it.nombre, precio: it.precio, titular: o.nombre, email: o.email, telefono: o.telefono, estado: 'VALIDA', emitida: new Date().toISOString(), ingreso: '',
+        asistente: a.nombre || '', asistenteDoc: a.documento || '', asistenteTel: a.telefono || '', asistenteRelacion: a.relacion || ''});
     } });
     o.codigos = codigos.join(', ');
     let c = db.contactos.find(x => x.email === o.email);
@@ -788,14 +790,15 @@ const ApiDemo = (() => {
     const ev = db.eventos.find(e => e.id === o.eventoId) || {};
     return Object.assign({}, o, {
       evento: {id: ev.id, nombre: ev.nombre || o.eventoNombre, subtitulo: ev.subtitulo, lema: ev.lema, fecha: ev.fecha, hora: ev.hora, apertura: ev.apertura, lugar: ev.lugar, direccion: ev.direccion, ciudad: ev.ciudad, referenciaLugar: ev.referenciaLugar, banner: ev.banner, flyer: ev.flyer},
-      boletas: db.boletas.filter(b => b.referencia === o.referencia).map(b => ({codigo: b.codigo, referencia: b.referencia, nota: ((ev.localidades || []).find(l => l.nombre === b.localidad) || {}).nota || '', qr: urlQR(b.codigo, b.firma), localidad: b.localidad, precio: b.precio, estado: b.estado, titular: b.titular}))
+      boletas: db.boletas.filter(b => b.referencia === o.referencia).map(b => ({codigo: b.codigo, referencia: b.referencia, nota: ((ev.localidades || []).find(l => l.nombre === b.localidad) || {}).nota || '', qr: urlQR(b.codigo, b.firma), localidad: b.localidad, precio: b.precio, estado: b.estado, titular: b.asistente || b.titular, comprador: b.titular}))
     });
   }
   const slug = t => sinTildes(t || 'evento').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'evento';
 
   function verificarDemo({codigo, firma, eventoId, marcar, dispositivo}) {
     const b = db.boletas.find(x => x.codigo === codigo);
-    const info = b ? {codigo: b.codigo, titular: marcar ? b.titular : b.titular.split(' ')[0], localidad: b.localidad, evento: b.eventoNombre} : {codigo};
+    const quien = b ? (b.asistente || b.titular) : '';
+    const info = b ? {codigo: b.codigo, titular: marcar ? quien : quien.split(' ')[0], compradoPor: marcar && b.asistente ? b.titular : '', estudianteBarakah: marcar && b.asistente ? ((db.ordenes.find(x => x.referencia === b.referencia) || {}).estudianteBarakah === 'SI') : false, localidad: b.localidad, evento: b.eventoNombre} : {codigo};
     let r;
     if (!b) r = {resultado: 'NO_EXISTE', mensaje: 'Este código no existe en la base de datos'};
     else if (firma && firma !== b.firma) r = {resultado: 'FIRMA', mensaje: 'El código QR fue alterado'};
@@ -806,7 +809,7 @@ const ApiDemo = (() => {
     else r = {resultado: 'AUTENTICA', mensaje: 'Boleta auténtica y vigente'};
     r.verificado = r.resultado === 'OK' || r.resultado === 'AUTENTICA'; r.registrado = r.resultado === 'OK'; r.boleta = info;
     if (marcar) db.ingresos.push({momento: new Date().toISOString(), codigo, referencia: b ? b.referencia : '', eventoId: b ? b.eventoId : (eventoId || ''), eventoNombre: b ? b.eventoNombre : '',
-      titular: b ? b.titular : '', localidad: b ? b.localidad : '', resultado: r.resultado, verificado: r.verificado ? 'SI' : 'NO', dispositivo: dispositivo || 'Portería'});
+      titular: b ? quien : '', localidad: b ? b.localidad : '', resultado: r.resultado, verificado: r.verificado ? 'SI' : 'NO', dispositivo: dispositivo || 'Portería'});
     guardar(); return r;
   }
   return {
@@ -894,6 +897,13 @@ const ApiDemo = (() => {
           o.estado = 'PAGADA'; o.pagada = new Date().toISOString(); o.comprobante = String(d.comprobante || ''); o.notas = 'Pago confirmado desde el panel';
           emitir(o); guardar();
           return {orden: vistaOrden(o), mensaje: 'Pago confirmado y boletas emitidas. (En demostración no se envía el correo ni se actualiza Drive).'};
+        }
+        case 'guardarAsistentes': {
+          const o = db.ordenes.find(x => x.referencia === d.referencia); if (!o) fallo('Orden no encontrada.');
+          o.estudianteBarakah = d.estudianteBarakah ? 'SI' : 'NO'; o.asistentes = d.asistentes || [];
+          db.boletas.filter(b => b.referencia === o.referencia).forEach((b, i) => { const a = o.asistentes[i] || {};
+            Object.assign(b, {asistente: a.nombre || '', asistenteDoc: a.documento || '', asistenteTel: a.telefono || '', asistenteRelacion: a.relacion || ''}); });
+          guardar(); return {mensaje: 'Datos de los asistentes guardados.'};
         }
         case 'anularOrden': {
           const o = db.ordenes.find(x => x.referencia === d.referencia); if (!o) fallo('Orden no encontrada.');
@@ -1607,7 +1617,7 @@ function veredictoHTML(r, {compacto = false} = {}) {
     <div class="veredicto-titulo">${ok ? 'VERIFICADO' : 'NO VERIFICADO'}</div>
     ${ok && esEstudiante(b.localidad) ? '<div class="veredicto-estudiante" role="alert">🎓 BOLETA DE ESTUDIANTE<br><span>PIDE EL CARNÉ</span></div>' : ''}
     <p class="veredicto-sub">${esc(sub)}</p>
-    ${b.evento || b.titular ? `<dl class="veredicto-datos">${b.evento ? `<div><dt>Evento</dt><dd>${esc(b.evento)}</dd></div>` : ''}${b.titular ? `<div><dt>Titular</dt><dd>${esc(b.titular)}</dd></div>` : ''}${b.localidad ? `<div><dt>Localidad</dt><dd>${esc(b.localidad)}</dd></div>` : ''}<div><dt>Código</dt><dd>${esc(b.codigo || '')}</dd></div></dl>` : (b.codigo ? `<p class="mini">${esc(b.codigo)}</p>` : '')}
+    ${b.evento || b.titular ? `<dl class="veredicto-datos">${b.evento ? `<div><dt>Evento</dt><dd>${esc(b.evento)}</dd></div>` : ''}${b.titular ? `<div${b.compradoPor ? ' class="ancho-v"' : ''}><dt>${b.compradoPor ? 'Asistente' : 'Titular'}</dt><dd${b.compradoPor ? ' style="font-size:1.25rem;color:#fff"' : ''}>${esc(b.titular)}</dd></div>` : ''}${b.compradoPor ? `<div class="ancho-v"><dt>Compró</dt><dd>${esc(b.compradoPor)}${b.estudianteBarakah ? ' · 🎓 estudiante Barakah' : ''}</dd></div>` : ''}${b.localidad ? `<div><dt>Localidad</dt><dd>${esc(b.localidad)}</dd></div>` : ''}<div><dt>Código</dt><dd>${esc(b.codigo || '')}</dd></div></dl>` : (b.codigo ? `<p class="mini">${esc(b.codigo)}</p>` : '')}
     ${ok && !r.registrado && !compacto ? '<p class="veredicto-nota">El ingreso se registra cuando el personal de Barakah escanea esta boleta con un celular autorizado.</p>' : ''}
   </div>`;
 }
@@ -1855,11 +1865,13 @@ async function adminVentas(caja) {
     $('#filas').innerHTML = lista.map(o => {
       const [et, cl] = ETIQUETA_ESTADO[o.estado] || [o.estado, ''];
       const emitida = o.estado === 'PAGADA' || o.estado === 'GRATIS';
-      return `<tr><td><b>${esc(o.referencia)}</b></td><td>${esc(fechaHora(o.creada))}</td><td>${esc(o.nombre)}<br><span class="secundario mini">${esc(o.tipoDoc)} ${esc(o.documento)} · ${esc(o.ciudad)}</span></td>
+      const asis = (o.asistentes || []).filter(a => a && a.nombre);
+      return `<tr><td><b>${esc(o.referencia)}</b></td><td>${esc(fechaHora(o.creada))}</td><td>${esc(o.nombre)}<br><span class="secundario mini">${esc(o.tipoDoc)} ${esc(o.documento)} · ${esc(o.ciudad)}</span>${o.estudianteBarakah === 'SI' ? '<br><span class="chip chip-oro" style="margin-top:4px">🎓 Estudiante Barakah</span>' : ''}</td>
         <td>${esc(o.email)}<br>${esc(o.telefono)}${o.autorizaPublicidad === 'SI' || o.autorizaPublicidad === true ? ' <span class="chip chip-ok" title="Autorizó información de eventos">✓ promo</span>' : ''}</td>
-        <td>${o.items.map(i => `${i.cantidad} × ${esc(i.nombre)}`).join('<br>')}${o.codigos ? `<br><span class="mini secundario">${esc(o.codigos)}</span>` : ''}</td><td>${pesos(o.total)}</td><td>${esc(NOMBRE_METODO[o.metodo] || o.metodo)}${o.comprobante ? `<br><span class="mini secundario">Comp.: ${esc(o.comprobante)}</span>` : ''}</td><td><span class="chip ${cl}">${esc(et)}</span></td>
+        <td>${o.items.map(i => `${i.cantidad} × ${esc(i.nombre)}`).join('<br>')}${o.codigos ? `<br><span class="mini secundario">${esc(o.codigos)}</span>` : ''}${asis.length ? `<br><span class="mini"><b style="color:var(--color-brillo)">Asistentes:</b> ${asis.map(a => esc(a.nombre)).join(', ')}</span>` : ''}</td><td>${pesos(o.total)}</td><td>${esc(NOMBRE_METODO[o.metodo] || o.metodo)}${o.comprobante ? `<br><span class="mini secundario">Comp.: ${esc(o.comprobante)}</span>` : ''}</td><td><span class="chip ${cl}">${esc(et)}</span></td>
         <td>${porConfirmar.includes(o) ? `<button class="btn btn-peq" data-acc="confirmar" data-ref="${esc(o.referencia)}">Confirmar pago</button>` : ''}
           ${emitida ? `<button class="btn btn-sec btn-peq" data-acc="ver" data-ref="${esc(o.referencia)}">Ver boletas</button><button class="btn btn-sec btn-peq" data-acc="correo" data-ref="${esc(o.referencia)}">Reenviar correo</button>` : ''}
+          ${['PAGADA', 'GRATIS', 'RESERVADA', 'PENDIENTE'].includes(o.estado) ? `<button class="btn btn-sec btn-peq" data-acc="asistentes" data-ref="${esc(o.referencia)}" title="Registrar a la persona que usará cada boleta">${asis.length ? '🎓 Editar asistentes' : '🎓 Datos de asistentes'}</button>` : ''}
           <button class="btn btn-sec btn-peq" data-acc="wa" data-ref="${esc(o.referencia)}" title="Abre el chat con el comprador desde el WhatsApp de este equipo">WhatsApp ${esc(o.telefono)}</button>
           ${['PAGADA', 'GRATIS', 'RESERVADA'].includes(o.estado) ? `<button class="btn btn-peligro btn-peq" data-acc="anular" data-ref="${esc(o.referencia)}">Anular</button>` : ''}</td></tr>`;
     }).join('') || `<tr><td colspan="9" class="secundario">${v.ordenes.length ? 'Sin resultados.' : 'Aún no hay compras para este evento.'}</td></tr>`;
@@ -1881,6 +1893,7 @@ async function adminVentas(caja) {
     const b = e.target.closest('[data-acc]'); if (!b) return;
     const o = v.ordenes.find(x => x.referencia === b.dataset.ref); if (!o) return;
     if (b.dataset.acc === 'confirmar') return dialogoConfirmar(o);
+    if (b.dataset.acc === 'asistentes') return dialogoAsistentes(o);
     if (b.dataset.acc === 'anular') {
       const motivo = prompt(`Motivo de la anulación de ${o.referencia}. Las boletas quedarán inválidas y el cupo vuelve al aforo. Si hubo pago, la devolución se hace por transferencia:`);
       if (motivo === null) return;
@@ -1898,6 +1911,36 @@ async function adminVentas(caja) {
       window.open(`https://wa.me/57${o.telefono}?text=${encodeURIComponent(t)}`, '_blank', 'noopener');
     }
   };
+}
+/* Datos de la persona que usará cada boleta (p. ej., cuando un(a) estudiante de Barakah compra para amigos o familiares) */
+function dialogoAsistentes(o) {
+  const filas = []; (o.items || []).forEach(it => { for (let i = 0; i < it.cantidad; i++) filas.push(it.nombre); });
+  const previo = o.asistentes || [];
+  const campo = (i, k, et, tipo, extra = '') => `<div class="campo"><label for="as-${k}-${i}">${et}</label><input id="as-${k}-${i}" data-i="${i}" data-k="${k}" type="${tipo}" value="${esc((previo[i] || {})[k] || '')}" ${extra}></div>`;
+  const m = abrirModal(`<h2>Datos de los asistentes</h2>
+    <p class="secundario mini" style="margin-top:-6px">Compra <b>${esc(o.referencia)}</b> de <b>${esc(o.nombre)}</b> · ${esc(o.items.map(i => i.cantidad + ' ' + i.nombre).join(' + '))}</p>
+    <label class="check" style="margin:10px 0 16px"><input type="checkbox" id="as-estudiante" ${o.estudianteBarakah === 'SI' ? 'checked' : ''}><span><b>La compra la hizo un(a) estudiante de la Corporación Barakah</b> para otras personas</span></label>
+    <p class="mini secundario">Escribe los datos de quien va a ingresar con cada boleta. Deja en blanco las boletas que usará el mismo comprador. El nombre aparecerá en el check-in y en la boleta.</p>
+    ${filas.map((loc, i) => `<fieldset class="tarjeta" style="padding:14px;margin-top:12px"><legend class="subtitulo" style="padding:0 6px">Boleta ${i + 1} · ${esc(loc)}</legend>
+      <div class="form-grid dos">${campo(i, 'nombre', 'Nombre completo', 'text', 'autocomplete="off"')}${campo(i, 'documento', 'Documento', 'text', 'inputmode="numeric" autocomplete="off"')}
+      ${campo(i, 'telefono', 'Celular', 'tel', 'inputmode="numeric" maxlength="10" autocomplete="off"')}${campo(i, 'relacion', 'Relación con el comprador', 'text', 'placeholder="Ej.: mamá, amigo" autocomplete="off"')}</div></fieldset>`).join('')}
+    <p class="nota" style="margin-top:14px">${['PAGADA', 'GRATIS'].includes(o.estado) ? 'Las boletas ya fueron emitidas: el nombre se actualiza de inmediato. Usa “Reenviar correo” si quieres que el comprador reciba las boletas con los nombres nuevos.' : 'Al confirmar el pago, cada boleta saldrá con el nombre de su asistente.'}</p>
+    <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-dorado" type="button" id="as-guardar">Guardar asistentes</button></div>`, {ancho: true});
+  $('#as-guardar', m.caja).addEventListener('click', async e => {
+    const lista = filas.map((_, i) => {
+      const v = k => ($(`#as-${k}-${i}`, m.caja).value || '').trim();
+      return {nombre: v('nombre').replace(/\s+/g, ' '), documento: v('documento').replace(/[.\s-]/g, ''), telefono: v('telefono').replace(/\D/g, ''), relacion: v('relacion')};
+    });
+    const mal = lista.findIndex(a => !a.nombre && (a.documento || a.telefono || a.relacion));
+    if (mal >= 0) { avisar(`Escribe el nombre de la persona de la boleta ${mal + 1}.`, 'error'); $(`#as-nombre-${mal}`, m.caja).focus(); return; }
+    const corto = lista.findIndex(a => a.nombre && (a.nombre.length < 5 || !/\s/.test(a.nombre)));
+    if (corto >= 0) { avisar(`Escribe nombre y apellido en la boleta ${corto + 1}.`, 'error'); $(`#as-nombre-${corto}`, m.caja).focus(); return; }
+    const tel = lista.findIndex(a => a.telefono && !/^3\d{9}$/.test(a.telefono));
+    if (tel >= 0) { avisar(`Revisa el celular de la boleta ${tel + 1} (10 dígitos, empieza por 3).`, 'error'); $(`#as-telefono-${tel}`, m.caja).focus(); return; }
+    const b = e.currentTarget; bloquear(b, 'Guardando…');
+    try { const r = await llamarAdmin('guardarAsistentes', {referencia: o.referencia, estudianteBarakah: $('#as-estudiante', m.caja).checked, asistentes: lista}); m.cerrar(); avisar(r.mensaje || 'Asistentes guardados.', 'ok', 6000); pintarAdmin(); }
+    catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+  });
 }
 function dialogoConfirmar(o) {
   const m = abrirModal(`<h2>Confirmar pago</h2>
@@ -2205,7 +2248,7 @@ async function descargarBaseDemo() {
   descargarExcel('Base de datos Boletería Barakah.xlsx', {
     Eventos: [['Evento', 'Fecha', 'Hora', 'Lugar', 'Aforo', 'Estado'], ...d.eventos.map(e => [e.nombre, e.fecha, e.hora, e.lugar, e.aforo, e.estado])],
     Compras: [['Código de compra', 'Fecha', 'Evento', 'Nombre', 'Documento', 'Correo', 'Celular', 'Ciudad', 'Boletas', 'Códigos de boletas', 'Cantidad', 'Total', 'Medio', 'Estado', 'Comprobante', 'Autoriza promoción'], ...d.ordenes.map(o => [o.referencia, fechaHora(o.creada), o.eventoNombre, o.nombre, o.tipoDoc + ' ' + o.documento, o.email, o.telefono, o.ciudad, o.detalle, o.codigos || '', o.cantidad, o.total, NOMBRE_METODO[o.metodo] || o.metodo, o.estado, o.comprobante || '', o.autorizaPublicidad])],
-    Boletas: [['Código de boleta', 'Código de compra', 'Evento', 'Localidad', 'Valor', 'Titular', 'Correo', 'Estado', 'Ingreso'], ...d.boletas.map(b => [b.codigo, b.referencia, b.eventoNombre, b.localidad, b.precio, b.titular, b.email, b.estado, fechaHora(b.ingreso)])],
+    Boletas: [['Código de boleta', 'Código de compra', 'Evento', 'Localidad', 'Valor', 'Comprador', 'Asistente (quien ingresa)', 'Documento asistente', 'Celular asistente', 'Relación', 'Correo', 'Estado', 'Ingreso'], ...d.boletas.map(b => [b.codigo, b.referencia, b.eventoNombre, b.localidad, b.precio, b.titular, b.asistente || '', b.asistenteDoc || '', b.asistenteTel || '', b.asistenteRelacion || '', b.email, b.estado, fechaHora(b.ingreso)])],
     Ingresos: [['Fecha', 'Código de boleta', 'Código de compra', 'Evento', 'Titular', 'Localidad', 'Resultado', 'Verificado', 'Equipo'], ...(d.ingresos || []).map(i => [fechaHora(i.momento), i.codigo, i.referencia, i.eventoNombre, i.titular, i.localidad, MOTIVO[i.resultado] || i.resultado, i.verificado, i.dispositivo])],
     Contactos: [['Nombre', 'Correo', 'Celular', 'Ciudad', 'Autoriza promoción', 'Eventos', 'Compras'], ...d.contactos.map(c => [c.nombre, c.email, c.telefono, c.ciudad, c.autorizaPublicidad, c.eventos, c.compras])],
     Mensajes: [['Fecha', 'Nombre', 'Correo', 'Teléfono', 'Mensaje', 'Estado'], ...d.mensajes.map(m => [fechaHora(m.momento), m.nombre, m.email, m.telefono, m.mensaje, m.estado])]
