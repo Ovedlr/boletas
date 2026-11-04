@@ -393,6 +393,12 @@ mark{background:rgba(250,186,47,.4);color:inherit;border-radius:3px;padding:0 2p
 .pestanas button{flex:0 0 auto;background:none;border:0;border-bottom:3px solid transparent;color:var(--texto-sec);font:600 .92rem var(--f-texto);padding:12px 14px;cursor:pointer}
 .pestanas button[aria-selected="true"]{color:var(--color-brillo);border-bottom-color:var(--color-principal)}
 .pestanas .burbuja{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:999px;background:var(--color-principal);color:#000;font-size:.72rem;margin-left:6px;padding:0 6px}
+.secciones-admin{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:18px 0 6px}
+.secciones-admin button{font:inherit;font-weight:700;font-size:1.05rem;padding:14px 18px;border-radius:var(--radio-sm);border:1px solid var(--borde);background:var(--fondo-elevado);color:var(--color-texto-oscuro);cursor:pointer;text-align:left}
+.secciones-admin button[aria-pressed="true"]{border-color:var(--color-principal);background:rgba(250,186,47,.14);color:var(--color-brillo);box-shadow:0 0 0 1px var(--color-principal) inset}
+.secciones-admin button:focus-visible{outline:2px solid var(--color-brillo);outline-offset:2px}
+.form-estado{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;padding:14px 16px;border-radius:var(--radio-sm);border:1px solid var(--borde);background:var(--fondo-elevado)}
+.form-estado.cerrado{border-color:#f59e0b;background:rgba(245,158,11,.1)}
 .kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:20px}
 .kpi{background:var(--fondo-elevado);border:1px solid var(--borde);border-radius:var(--radio-sm);padding:14px 16px}
 .kpi small{display:block;font-weight:300;color:var(--texto-sec);font-size:.8rem}
@@ -598,12 +604,13 @@ const CONFIG = {
 
   /* WhatsApp */
   WHATSAPP_USUARIO: '@Barakah.co',            // Nombre visible
-  WHATSAPP_NUMERO: '573003220443',            // Número de WhatsApp con indicativo 57
+  WHATSAPP_NUMERO: '573147779678',            // WhatsApp de INFORMACIÓN con indicativo 57
   /* Enlace de WhatsApp que usan TODOS los botones. Los enlaces por nombre de usuario (wa.me/Barakah.co)
      todavía no funcionan en Colombia, por eso se usa el número. Si WhatsApp Business les da un
      "enlace corto" (wa.me/message/…), puede pegarse aquí, pero ese enlace no admite mensaje prellenado. */
-  WHATSAPP_URL: 'https://wa.me/573003220443',
-  TELEFONOS: ['300 322 0443', '300 700 6107', '304 653 3020'],   // El primero es el WhatsApp de Barakah
+  WHATSAPP_URL: 'https://wa.me/573147779678',
+  WHATSAPP_COMPROBANTES: '300 322 0443',     // WhatsApp SOLO para enviar comprobantes de pago
+  TELEFONOS: ['314 777 9678', '300 700 6107', '304 653 3020'],   // El primero es el WhatsApp de información
   REDES: {
     instagram: 'https://www.instagram.com/barakah.co',
     facebook:  'https://www.facebook.com/profile.php?id=61558807467208',
@@ -930,7 +937,7 @@ const ApiDemo = (() => {
         case 'contactos': return db.contactos.slice().reverse();
         case 'mensajes': return db.mensajes.slice().reverse();
         case 'marcarMensaje': { const m = db.mensajes.find(x => x.momento === d.momento); if (m) m.estado = d.estado; guardar(); return true; }
-        case 'inscripciones': return {programa: d.programa, lista: [], cuenta: {}, abiertas: true, recaudo: 0, porNivel: {BASICO: 0, AVANZADO: 0}};
+        case 'inscripciones': return {programa: d.programa, lista: [], cuenta: {}, abiertas: true, mensajeCerrado: '', recaudo: 0, porNivel: {BASICO: 0, AVANZADO: 0}};
         case 'enlacesInscripciones': return {hoja: '', excel: '', carpeta: ''};
         case 'baseCompleta': return JSON.parse(JSON.stringify(db));
         case 'reiniciarDemo': db = semilla(); guardar(); return true;
@@ -1292,7 +1299,7 @@ function pasoPago(caja) {
     ${gratis ? '<div class="nota">Este evento es gratuito, pero requiere boleta. Al confirmar recibirás tu código QR en el correo.</div>' : `
     <div class="metodos" role="radiogroup" aria-label="Medio de pago">${opciones.map(([v, n, d], i) => `<label class="metodo"><input type="radio" name="metodo" value="${v}" ${i === 0 ? 'checked' : ''}>
       <div style="flex:1"><span class="subtitulo">${n}</span><br><span class="secundario mini">${d}</span></div><span class="metodo-logo">${n.toUpperCase()}</span></label>`).join('')}</div>
-    <div class="nota" style="margin-top:14px">Te apartamos las boletas por <b>${P.HORAS_RESERVA} horas</b>. Transfieres, nos envías el comprobante por WhatsApp y, al confirmarlo, te llegan las boletas con código QR a tu correo.</div>`}
+    <div class="nota" style="margin-top:14px">Te apartamos las boletas por <b>${P.HORAS_RESERVA} horas</b>. Transfieres, nos envías el comprobante al WhatsApp ${esc(CONFIG.WHATSAPP_COMPROBANTES)} y, al confirmarlo, te llegan las boletas con código QR a tu correo.</div>`}
     <div class="acciones"><button class="btn btn-sec" type="button" id="atras3">Atrás</button>
       <button class="btn btn-dorado" type="button" id="pagar">${gratis ? 'Confirmar reserva' : 'Apartar boletas · ' + pesos(t.total)}</button></div>`;
   $('#editar').addEventListener('click', () => { COMPRA.paso = 2; pintarPaso(); });
@@ -1351,13 +1358,13 @@ async function vistaOrden(main, referencia, clave) {
           <div class="pago-fila monto"><div><small>Valor exacto a transferir</small><b>${pesos(o.total)}</b></div><button class="btn btn-sec btn-peq" data-copiar="${o.total}">Copiar</button></div>
           ${dp.filas.map(([k, v, copiar]) => `<div class="pago-fila"><div><small>${esc(k)}</small><b>${esc(v)}</b></div>${copiar ? `<button class="btn btn-sec btn-peq" data-copiar="${esc(String(v).replace(/\s/g, ''))}">Copiar</button>` : ''}</div>`).join('')}
           <div class="pago-fila" style="border-color:var(--color-principal);background:rgba(250,186,47,.1)"><div><small>Referencia de tu compra: escríbela o pégala junto al comprobante cuando lo envíes</small><b class="referencia" style="font-size:1.5rem">${esc(o.referencia)}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(o.referencia)}">Copiar</button></div>
-          <div class="pago-fila"><div><small>WhatsApp para enviar el comprobante</small><b>${esc(CONFIG.TELEFONOS[0])}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(CONFIG.TELEFONOS[0].replace(/\s/g, ''))}">Copiar</button></div>
+          <div class="pago-fila"><div><small>WhatsApp para enviar el comprobante</small><b>${esc(CONFIG.WHATSAPP_COMPROBANTES)}</b></div><button class="btn btn-sec btn-peq" data-copiar="${esc(CONFIG.WHATSAPP_COMPROBANTES.replace(/\s/g, ''))}">Copiar</button></div>
         </div>
         ${cantEstudiantes(o.items) ? `<div class="nota" style="margin:16px 0 0;border-color:#f59e0b;background:rgba(245,158,11,.12)">🎓 <b>Tu compra incluye ${cantEstudiantes(o.items)} boleta${cantEstudiantes(o.items) > 1 ? 's' : ''} de estudiante.</b> Junto con el comprobante, envía una foto del carné estudiantil vigente de cada estudiante. Sin carné, en la entrada se cobra la diferencia con la boleta general.</div>` : ''}
         <ol class="pasos-pago">
           <li><span>Transfiere el valor exacto desde tu app.</span></li>
           <li><span>Toma captura del comprobante.</span></li>
-          <li><span>Envía la captura al WhatsApp <b>${esc(CONFIG.TELEFONOS[0])}</b> y escribe o pega tu referencia <b class="referencia">${esc(o.referencia)}</b> en el mismo mensaje.${cantEstudiantes(o.items) ? ` <b style="color:var(--color-brillo)">Envía también una foto del carné estudiantil vigente de ${cantEstudiantes(o.items) === 1 ? 'la persona que usará la boleta de estudiante' : `cada una de las ${cantEstudiantes(o.items)} personas que usarán boletas de estudiante`}.</b>` : ''}</span></li>
+          <li><span>Envía la captura al WhatsApp <b>${esc(CONFIG.WHATSAPP_COMPROBANTES)}</b> y escribe o pega tu referencia <b class="referencia">${esc(o.referencia)}</b> en el mismo mensaje.${cantEstudiantes(o.items) ? ` <b style="color:var(--color-brillo)">Envía también una foto del carné estudiantil vigente de ${cantEstudiantes(o.items) === 1 ? 'la persona que usará la boleta de estudiante' : `cada una de las ${cantEstudiantes(o.items)} personas que usarán boletas de estudiante`}.</b>` : ''}</span></li>
           <li><span>Al confirmar el pago te enviamos las boletas con código QR a <b>${esc(o.email)}</b>.</span></li>
         </ol>
         <div class="acciones"><span></span><button class="btn btn-sec" type="button" id="refrescar">Ya me confirmaron: ver boletas</button></div>
@@ -1365,7 +1372,7 @@ async function vistaOrden(main, referencia, clave) {
       </div>${resumen}`;
   } else {
     const textos = {
-      VENCIDA: ['La reserva venció', 'El plazo para pagar terminó y las boletas se liberaron. Si ya pagaste, escríbenos por WhatsApp con tu comprobante.'],
+      VENCIDA: ['La reserva venció', 'El plazo para pagar terminó y las boletas se liberaron. Si ya pagaste, envía tu comprobante al WhatsApp ' + CONFIG.WHATSAPP_COMPROBANTES + '.'],
       CANCELADA: ['La compra fue cancelada', 'No se realizó ningún cobro.'],
       ANULADA: ['Esta compra fue anulada', 'Las boletas de esta compra ya no son válidas. Para más información, escríbenos.'],
       RECHAZADA: ['El pago no fue aprobado', 'No se realizó ningún cobro.'],
@@ -1453,7 +1460,7 @@ async function vistaConsultar(main) {
 function textosFAQ() {
   const P = CONFIG.PAGOS;
   return [
-    {cat: 'Compra', ico: '🎟️', p: '¿Cómo compro mis boletas?', r: `Elige el evento, la cantidad de boletas y escribe tus datos. Luego eliges Nequi o Bancolombia: te apartamos las boletas por ${P.HORAS_RESERVA} horas mientras transfieres y nos envías el comprobante por WhatsApp. Al confirmarlo, recibes las boletas con código QR en tu correo.`},
+    {cat: 'Compra', ico: '🎟️', p: '¿Cómo compro mis boletas?', r: `Elige el evento, la cantidad de boletas y escribe tus datos. Luego eliges Nequi o Bancolombia: te apartamos las boletas por ${P.HORAS_RESERVA} horas mientras transfieres y nos envías el comprobante al WhatsApp ${CONFIG.WHATSAPP_COMPROBANTES}. Al confirmarlo, recibes las boletas con código QR en tu correo.`},
     {cat: 'Pagos', ico: '💳', p: '¿Qué medios de pago aceptan?', r: `Nequi al número ${P.NEQUI.NUMERO} y transferencia a la cuenta de ahorros Bancolombia ${P.BANCOLOMBIA.NUMERO}. Puedes transferir desde Nequi, Bancolombia u otro banco.`},
     {cat: 'Pagos', ico: '🧾', p: '¿Hay cargos adicionales?', r: 'No. El precio publicado es el valor final: no cobramos cargo por servicio ni IVA adicional. Solo transfiere el valor exacto que aparece en tu reserva.'},
     {cat: 'Boletas', ico: '📧', p: '¿Cuándo y cómo recibo mis boletas?', r: 'Apenas verifiquemos tu pago, te enviamos un correo con cada boleta y su código QR. También puedes verlas y descargarlas en “Mis boletas” con tu referencia y tu correo.'},
@@ -1559,7 +1566,7 @@ function textosLegales() {
     terminos: {titulo: 'Términos y condiciones de compra', html: `<p class="secundario mini">Borrador sujeto a revisión jurídica · Versión 2 · noviembre de 2026</p>
       <h2>1. Organizador</h2><p>Las boletas de esta plataforma son emitidas por la ${E}, NIT ${N}, Bello, Antioquia (“Barakah”). Contacto: ${C} · WhatsApp ${W}.</p>
       <h2>2. Precio</h2><p>El precio publicado es el valor final de la boleta; no se cobra cargo por servicio ni IVA adicional. Los costos que cobre la entidad financiera del comprador por su transferencia corren por cuenta de este.</p>
-      <h2>3. Reserva, pago y confirmación</h2><ul><li>Al finalizar la compra, las boletas quedan apartadas durante ${H} horas. En ese plazo el comprador debe transferir el valor exacto por Nequi o Bancolombia y enviar el comprobante por WhatsApp indicando su referencia.</li><li>La compra se perfecciona cuando Barakah verifica el pago. Entonces las boletas se envían al correo registrado y quedan disponibles en “Mis boletas”.</li><li>Si el pago no se recibe en el plazo, la reserva vence y las boletas se liberan. Un pago recibido después del vencimiento se confirmará solo si aún hay cupo; de lo contrario, se devolverá.</li><li>El comprador es responsable de escribir correctamente sus datos. Las boletas de eventos gratuitos son personales, no tienen valor comercial y están sujetas al mismo aforo.</li></ul>
+      <h2>3. Reserva, pago y confirmación</h2><ul><li>Al finalizar la compra, las boletas quedan apartadas durante ${H} horas. En ese plazo el comprador debe transferir el valor exacto por Nequi o Bancolombia y enviar el comprobante al WhatsApp ${esc(CONFIG.WHATSAPP_COMPROBANTES)} indicando su referencia.</li><li>La compra se perfecciona cuando Barakah verifica el pago. Entonces las boletas se envían al correo registrado y quedan disponibles en “Mis boletas”.</li><li>Si el pago no se recibe en el plazo, la reserva vence y las boletas se liberan. Un pago recibido después del vencimiento se confirmará solo si aún hay cupo; de lo contrario, se devolverá.</li><li>El comprador es responsable de escribir correctamente sus datos. Las boletas de eventos gratuitos son personales, no tienen valor comercial y están sujetas al mismo aforo.</li></ul>
       <h2>4. Uso de la boleta</h2><ul><li>Cada boleta tiene un código QR único que permite un solo ingreso; después del primer escaneo, cualquier copia queda invalidada.</li><li>Está prohibida la reventa. Las boletas revendidas, alteradas o adquiridas por canales no autorizados podrán anularse sin reembolso.</li><li>La boleta de estudiante exige presentar carné estudiantil vigente; de lo contrario, deberá pagarse la diferencia con la boleta general.</li></ul>
       <h2>5. Ingreso y permanencia</h2><p>El personal de sala puede negar el ingreso o retirar a quien ponga en riesgo la seguridad, se encuentre en estado de embriaguez o incumpla las normas del escenario. Una vez iniciada la función, el ingreso queda sujeto a las indicaciones del personal. No se permite grabar ni transmitir el espectáculo sin autorización.</p>
       <h2>6. Cambios y cancelación</h2><p>Barakah puede modificar el elenco o el programa por razones artísticas o de fuerza mayor sin que ello dé lugar a devolución. Los cambios de fecha, hora o lugar se informarán por correo y WhatsApp, según la <a href="#/legal/reembolsos">política de devoluciones</a>.</p>
@@ -1782,19 +1789,33 @@ async function descargarPDF(o, btn, imprimir) {
 /* ==========================================================================
    PANEL DE ADMINISTRACIÓN (protegido con clave)
    ========================================================================== */
-let ADMIN = {pestana: 'eventos', eventos: [], eventoSel: '', editar: null};
+const SECCIONES_ADMIN = {
+  eventos: {titulo: 'Boletería y eventos', pestanas: [['eventos', 'Eventos: flyer, información y aforo'], ['ventas', 'Ventas y pagos'], ['ingreso', 'Control de ingreso'], ['contactos', 'Contactos'], ['mensajes', 'Mensajes'], ['datos', 'Base de datos (Excel)']]},
+  inscripciones: {titulo: 'Inscripciones a clases', pestanas: [['inscripciones', 'Clases regulares'], ['semillas', 'Semillas en Movimiento']]}
+};
+const seccionGuardada = () => { try { return sessionStorage.getItem('barakah_seccion') === 'inscripciones' ? 'inscripciones' : 'eventos'; } catch (e) { return 'eventos'; } };
+let ADMIN = {seccion: seccionGuardada(), pestana: seccionGuardada() === 'inscripciones' ? 'inscripciones' : 'eventos', eventos: [], eventoSel: '', editar: null};
 async function vistaAdmin(main) {
   document.title = 'Panel · Boletería ' + CONFIG.NOMBRE_CORTO;
   if (!Sesion.token()) return loginAdmin(main);
   main.innerHTML = `<div class="contenedor">
     <div class="admin-cab"><div><h1 style="font-size:clamp(1.6rem,4vw,2.2rem);margin:0">Panel de administración</h1>
         <span class="chip ${MODO_DEMO ? 'chip-aviso' : 'chip-ok'}" style="margin-top:6px">${MODO_DEMO ? '⚠ Modo demostración: no se envían correos ni se guarda en Drive' : '✓ Conectado al servidor y a Drive'}</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">Abrir base de datos</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
-    <div class="pestanas" role="tablist" aria-label="Secciones del panel">
-      ${[['eventos', 'Eventos: flyer, información y aforo'], ['ventas', 'Ventas y pagos'], ['ingreso', 'Control de ingreso'], ['inscripciones', 'Inscripciones a clases'], ['semillas', 'Semillas en Movimiento'], ['contactos', 'Contactos'], ['mensajes', 'Mensajes'], ['datos', 'Base de datos (Excel)']].map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
+    <div class="secciones-admin" role="group" aria-label="Área del panel">
+      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${k === 'eventos' ? '🎟️' : '💃'}</span> ${esc(sec.titulo)}</button>`).join('')}
+    </div>
+    <div class="pestanas" role="tablist" aria-label="Pestañas de ${esc(SECCIONES_ADMIN[ADMIN.seccion].titulo)}">
+      ${SECCIONES_ADMIN[ADMIN.seccion].pestanas.map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
     </div><section id="admin-cuerpo" role="tabpanel"></section></div>`;
   $('#salir').addEventListener('click', () => { Sesion.salir(); enrutar(); });
-  $('#abrir-base').addEventListener('click', abrirBaseDatos);
+  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : abrirBaseDatos());
+  $$('[data-seccion]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.seccion; if (k === ADMIN.seccion) return;
+    ADMIN.seccion = k; ADMIN.pestana = SECCIONES_ADMIN[k].pestanas[0][0]; INS.filtro = ''; INS.estado = '';
+    try { sessionStorage.setItem('barakah_seccion', k); } catch (e) {}
+    vistaAdmin($('#main'));
+  }));
   $$('[data-tab]').forEach(b => b.addEventListener('click', () => irPestana(b.dataset.tab)));
   await pintarAdmin();
 }
@@ -1827,6 +1848,7 @@ async function pintarAdmin() {
   caja.onclick = null;
   caja.innerHTML = cargando();
   try {
+    if (ADMIN.seccion === 'inscripciones') { await ({inscripciones: adminInscripciones, semillas: adminSemillas}[ADMIN.pestana] || adminInscripciones)(caja); return; }
     ADMIN.eventos = (await llamarAdmin('eventos')).sort((a, b) => momentoEvento(b) - momentoEvento(a));
     if (!ADMIN.eventoSel || !ADMIN.eventos.find(e => e.id === ADMIN.eventoSel)) {
       const prox = ADMIN.eventos.filter(e => !eventoPasado(e)).sort((a, b) => momentoEvento(a) - momentoEvento(b))[0];
@@ -1972,6 +1994,35 @@ const ESTADO_INS = {ESPERANDO_PAGO: ['Esperando pago', 'chip-aviso'], EVALUACION
 const NIVEL_INS = {BASICO: 'Nivel básico · Martes 7:00 p. m.', AVANZADO: 'Nivel avanzado · Jueves 7:00 p. m.'};
 const NIVEL_CORTO = {BASICO: 'Básico', AVANZADO: 'Avanzado'};
 const INS = {filtro: '', estado: ''};
+function barraFormulario(v, programa) {
+  const nombre = programa === 'SEMILLAS' ? 'Semillas en Movimiento' : 'clases regulares';
+  return `<div class="form-estado ${v.abiertas ? '' : 'cerrado'}"><div><b>Formulario de ${nombre}: ${v.abiertas ? '<span style="color:var(--exito)">abierto</span>' : '<span style="color:#f59e0b">cerrado</span>'}</b><br>
+    <span class="mini secundario">${v.abiertas ? 'Cualquier persona puede inscribirse desde la página.' : 'Quien entre al formulario ve este aviso: “' + esc(v.mensajeCerrado) + '”'}</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" data-form="aviso">Editar aviso de cierre</button><button class="btn ${v.abiertas ? 'btn-peligro' : 'btn-dorado'} btn-peq" type="button" data-form="${v.abiertas ? 'cerrar' : 'abrir'}">${v.abiertas ? 'Cerrar formulario' : 'Abrir formulario'}</button></div></div>`;
+}
+function eventosFormulario(caja, v, programa) {
+  $$('[data-form]', caja).forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (b.dataset.form === 'aviso') return dialogoAviso(v, programa);
+    bloquear(b, '…');
+    try { const r = await llamarAdmin('estadoFormulario', {programa, abierto: b.dataset.form === 'abrir'}); avisar(r.abiertas ? 'Formulario abierto: ya se reciben inscripciones.' : 'Formulario cerrado: la página muestra el aviso.', 'ok', 6000); pintarAdmin(); }
+    catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+  }));
+}
+function dialogoAviso(v, programa) {
+  const m = abrirModal(`<h2>Aviso de formulario cerrado</h2>
+    <p class="secundario mini" style="margin-top:-6px">Es el texto que ve quien entra al formulario de ${programa === 'SEMILLAS' ? 'Semillas en Movimiento' : 'clases'} mientras está cerrado.</p>
+    <div class="campo"><label for="aviso-txt">Aviso</label><textarea id="aviso-txt" maxlength="600" style="min-height:120px">${esc(v.mensajeCerrado)}</textarea></div>
+    <p class="mini secundario">Deja el cuadro vacío y guarda para volver al aviso predeterminado.</p>
+    <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-dorado" type="button" id="aviso-ok">Guardar aviso</button></div>`);
+  $('#aviso-ok', m.caja).addEventListener('click', async e => {
+    const b = e.currentTarget; bloquear(b, 'Guardando…');
+    try { await llamarAdmin('estadoFormulario', {programa, mensaje: $('#aviso-txt', m.caja).value.trim()}); m.cerrar(); avisar('Aviso guardado.', 'ok'); pintarAdmin(); }
+    catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+  });
+}
+const CONDICION_INS = {SI: 'Sí', NO: 'No', NO_RESPONDE: 'Prefiere no responder'};
+const chipCondicion = x => x.condicion === 'SI' ? `<br><span class="chip chip-aviso" style="margin-top:4px" title="${esc(x.condicionDetalle || 'Indicó discapacidad o limitación')}">♿ Condición a tener en cuenta</span>` : '';
 const chipIns = e => { const [t, c] = ESTADO_INS[e] || [e, '']; return `<span class="chip ${c}">${esc(t)}</span>`; };
 const siNo = v => v === 'SI' || v === true ? 'Sí' : 'No';
 const fechaCorta = f => f ? (/^\d{4}-\d{2}-\d{2}$/.test(f) ? new Date(f + 'T12:00:00') : new Date(f)).toLocaleDateString('es-CO', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
@@ -1987,7 +2038,7 @@ async function abrirHojaIns(btn) {
 async function adminInscripciones(caja) {
   const v = await llamarAdmin('inscripciones', {programa: 'CLASES'}), c = v.cuenta || {};
   const porPagar = v.lista.filter(x => x.estado === 'ESPERANDO_PAGO'), enEval = v.lista.filter(x => x.estado === 'EVALUACION');
-  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Inscripciones del formulario <a href="https://albarakah.com.co/inscripciones" target="_blank" rel="noopener">albarakah.com.co/inscripciones</a>. Se guardan en la hoja <b>“Inscripciones Barakah”</b> de Drive y su copia en Excel.${v.abiertas ? '' : ' <b style="color:var(--error)">El formulario está cerrado (propiedad INS_ABIERTAS = no).</b>'}</div>
+  caja.innerHTML = `${barraFormulario(v, 'CLASES')}<div class="nota" style="margin-bottom:16px">Inscripciones del formulario <a href="https://albarakah.com.co/inscripciones" target="_blank" rel="noopener">albarakah.com.co/inscripciones</a>. Se guardan en la hoja <b>“Inscripciones Barakah”</b> de Drive y su copia en Excel.</div>
     <div class="kpis">
       <div class="kpi"><small>Esperando pago</small><b>${c.ESPERANDO_PAGO || 0}</b></div><div class="kpi"><small>En evaluación</small><b>${c.EVALUACION || 0}</b></div>
       <div class="kpi"><small>Activas</small><b>${c.ACTIVA || 0}</b></div><div class="kpi"><small>Básico (martes)</small><b>${(v.porNivel || {}).BASICO || 0}</b></div>
@@ -2008,7 +2059,7 @@ async function adminInscripciones(caja) {
     const f = INS.filtro.toLowerCase();
     const lista = v.lista.filter(x => (!INS.estado || x.estado === INS.estado) && (!f || [x.referencia, x.nombre, x.documento, x.telefono, x.email, x.acudienteNombre].join(' ').toLowerCase().includes(f)));
     $('#filas-ins').innerHTML = lista.map(x => `<tr><td><b>${esc(x.referencia)}</b><br><span class="mini secundario">${esc(fechaHora(x.creada))}</span></td>
-      <td>${esc(x.nombre)}<br><span class="secundario mini">${esc(x.tipoDoc)} ${esc(x.documento)} · ${esc(x.edad)} años</span>${x.menor === 'SI' ? `<br><span class="chip chip-aviso" style="margin-top:4px">Menor · acudiente ${esc(x.acudienteNombre)}</span>` : ''}</td>
+      <td>${esc(x.nombre)}<br><span class="secundario mini">${esc(x.tipoDoc)} ${esc(x.documento)} · ${esc(x.edad)} años</span>${x.menor === 'SI' ? `<br><span class="chip chip-aviso" style="margin-top:4px">Menor · acudiente ${esc(x.acudienteNombre)}</span>` : ''}${chipCondicion(x)}</td>
       <td>${esc(x.telefono)}<br><span class="mini">${esc(x.email)}</span>${x.autorizaImagen === 'SI' ? ' <span class="chip chip-ok" title="Autorizó uso de imagen">✓ imagen</span>' : ''}</td>
       <td>${esc(NIVEL_CORTO[x.nivelAsignado || x.nivel] || '')}${x.nivelAsignado && x.nivelAsignado !== x.nivel ? `<br><span class="mini secundario">eligió ${esc(NIVEL_CORTO[x.nivel] || x.nivel)}</span>` : ''}</td>
       <td>${pesos(x.total)}<br><span class="mini secundario">${esc(NOMBRE_METODO[x.metodo] || x.metodo)}${x.alumnaBarakah === 'SI' ? ' · antigua' : ' · con matrícula'}${x.comprobante ? ' · ' + esc(x.comprobante) : ''}</span></td>
@@ -2019,12 +2070,13 @@ async function adminInscripciones(caja) {
     etiquetarTablas(caja);
   };
   pintar();
+  eventosFormulario(caja, v, 'CLASES');
   $('#buscar-ins').addEventListener('input', e => { INS.filtro = e.target.value; pintar(); });
   $('#estado-ins').addEventListener('change', e => { INS.estado = e.target.value; pintar(); });
   $('#act-ins').addEventListener('click', pintarAdmin);
   $('#hoja-ins').addEventListener('click', e => abrirHojaIns(e.currentTarget));
-  $('#xls-ins').addEventListener('click', () => descargarExcel('Inscripciones Barakah.xlsx', {Inscripciones: [['Referencia', 'Fecha', 'Estado', 'Nombre', 'Tipo doc', 'Documento', 'Fecha de nacimiento', 'Edad', 'Celular', 'Correo', 'Nivel elegido', 'Nivel asignado', 'Alumna antigua', 'Matrícula', 'Mensualidad', 'Total', 'Medio de pago', 'Fecha de pago', 'Comprobante', 'Menor', 'Acudiente', 'Doc. acudiente', 'Parentesco', 'Celular acudiente', 'Correo acudiente', 'Contacto emergencia', 'Celular emergencia', 'Autoriza imagen', 'Cuéntanos de ti', 'Notas'],
-    ...v.lista.map(x => [x.referencia, fechaHora(x.creada), (ESTADO_INS[x.estado] || [x.estado])[0], x.nombre, x.tipoDoc, x.documento, x.nacimiento, x.edad, x.telefono, x.email, NIVEL_CORTO[x.nivel] || x.nivel, NIVEL_CORTO[x.nivelAsignado] || '', siNo(x.alumnaBarakah), x.matricula, x.mensualidad, x.total, NOMBRE_METODO[x.metodo] || x.metodo, fechaHora(x.pagada), x.comprobante, siNo(x.menor), x.acudienteNombre, x.acudienteDoc, x.acudienteParentesco, x.acudienteTelefono, x.acudienteEmail, x.emergenciaNombre, x.emergenciaTelefono, siNo(x.autorizaImagen), x.sobreTi, x.notas])]}));
+  $('#xls-ins').addEventListener('click', () => descargarExcel('Inscripciones Barakah.xlsx', {Inscripciones: [['Referencia', 'Fecha', 'Estado', 'Nombre', 'Tipo doc', 'Documento', 'Fecha de nacimiento', 'Edad', 'Celular', 'Correo', 'Nivel elegido', 'Nivel asignado', 'Alumna antigua', 'Matrícula', 'Mensualidad', 'Total', 'Medio de pago', 'Fecha de pago', 'Comprobante', 'Menor', 'Acudiente', 'Doc. acudiente', 'Parentesco', 'Celular acudiente', 'Correo acudiente', 'Contacto emergencia', 'Celular emergencia', 'Discapacidad o limitación', 'Detalle de la condición', 'Autoriza imagen', 'Cuéntanos de ti', 'Notas'],
+    ...v.lista.map(x => [x.referencia, fechaHora(x.creada), (ESTADO_INS[x.estado] || [x.estado])[0], x.nombre, x.tipoDoc, x.documento, x.nacimiento, x.edad, x.telefono, x.email, NIVEL_CORTO[x.nivel] || x.nivel, NIVEL_CORTO[x.nivelAsignado] || '', siNo(x.alumnaBarakah), x.matricula, x.mensualidad, x.total, NOMBRE_METODO[x.metodo] || x.metodo, fechaHora(x.pagada), x.comprobante, siNo(x.menor), x.acudienteNombre, x.acudienteDoc, x.acudienteParentesco, x.acudienteTelefono, x.acudienteEmail, x.emergenciaNombre, x.emergenciaTelefono, CONDICION_INS[x.condicion] || '', x.condicionDetalle, siNo(x.autorizaImagen), x.sobreTi, x.notas])]}));
   caja.onclick = async e => {
     const b = e.target.closest('[data-acc]'); if (!b) return;
     const x = v.lista.find(i => i.referencia === b.dataset.ref); if (!x) return;
@@ -2073,6 +2125,7 @@ function fichaIns(x, programa) {
       ${sem ? fila('Barrio', x.barrio) + fila('Colegio', x.colegio) + fila('EPS', x.eps) + fila('Ya participaba en el proceso', siNo(x.yaParticipa)) + fila('Observaciones', x.observaciones)
         : fila('Celular (WhatsApp)', x.telefono) + fila('Correo', x.email) + fila('Nivel elegido', NIVEL_INS[x.nivel] || x.nivel) + fila('Nivel asignado', NIVEL_INS[x.nivelAsignado] || '') + fila('Pago', `${pesos(x.total)} · ${NOMBRE_METODO[x.metodo] || x.metodo}${x.pagada ? ' · confirmado el ' + fechaHora(x.pagada) : ' · pendiente'}${x.comprobante ? ' · ' + x.comprobante : ''}`) + fila('Alumna antigua', siNo(x.alumnaBarakah)) + fila('Cuéntanos de ti', x.sobreTi)}
       ${x.acudienteNombre ? fila('Acudiente', `${x.acudienteNombre} (${x.acudienteParentesco}) · ${x.acudienteTipoDoc} ${x.acudienteDoc}`) + fila('Contacto del acudiente', [x.acudienteTelefono, x.acudienteEmail].filter(Boolean).join(' · ')) : ''}
+      ${fila('Discapacidad o limitación', x.condicion ? CONDICION_INS[x.condicion] + (x.condicionDetalle ? ' · ' + x.condicionDetalle : '') : '')}
       ${fila('Contacto de emergencia', [x.emergenciaNombre, x.emergenciaTelefono].filter(Boolean).join(' · '))}
       ${fila('Autorizaciones', `Reglamento: ${siNo(x.aceptaReglamento)} · Datos: ${siNo(x.autorizaDatos)} · Imagen: ${siNo(x.autorizaImagen)} · versión ${x.versionPoliticas}`)}
       ${fila('Correos', x.correo)}</div>
@@ -2096,7 +2149,7 @@ function fichaIns(x, programa) {
 }
 async function adminSemillas(caja) {
   const v = await llamarAdmin('inscripciones', {programa: 'SEMILLAS'}), c = v.cuenta || {};
-  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Inscripciones gratuitas del formulario <a href="https://albarakah.com.co/semillas" target="_blank" rel="noopener">albarakah.com.co/semillas</a>. Las hace el acudiente de cada participante. Se guardan en la hoja <b>“Inscripciones Barakah”</b>, pestaña “Semillas”.${v.abiertas ? '' : ' <b style="color:var(--error)">El formulario está cerrado (propiedad SEM_ABIERTAS = no).</b>'}</div>
+  caja.innerHTML = `${barraFormulario(v, 'SEMILLAS')}<div class="nota" style="margin-bottom:16px">Inscripciones gratuitas del formulario <a href="https://albarakah.com.co/semillas" target="_blank" rel="noopener">albarakah.com.co/semillas</a>. Las hace el acudiente de cada participante. Se guardan en la hoja <b>“Inscripciones Barakah”</b>, pestaña “Semillas”.</div>
     <div class="kpis"><div class="kpi"><small>Nuevas por contactar</small><b>${c.NUEVA || 0}</b></div><div class="kpi"><small>Activas</small><b>${c.ACTIVA || 0}</b></div>
       <div class="kpi"><small>Ya estaban en el proceso</small><b>${v.lista.filter(x => x.yaParticipa === 'SI' && ['NUEVA', 'ACTIVA'].includes(x.estado)).length}</b></div><div class="kpi"><small>Autorizan imagen</small><b>${v.lista.filter(x => x.autorizaImagen === 'SI' && ['NUEVA', 'ACTIVA'].includes(x.estado)).length}</b></div></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:end;margin:6px 0 12px">
@@ -2107,7 +2160,7 @@ async function adminSemillas(caja) {
     const f = INS.filtro.toLowerCase();
     const lista = v.lista.filter(x => !f || [x.referencia, x.nombre, x.documento, x.acudienteNombre, x.acudienteTelefono, x.barrio].join(' ').toLowerCase().includes(f));
     $('#filas-sem').innerHTML = lista.map(x => `<tr><td><b>${esc(x.referencia)}</b><br><span class="mini secundario">${esc(fechaHora(x.creada))}</span></td>
-      <td>${esc(x.nombre)}<br><span class="secundario mini">${esc(x.tipoDoc)} ${esc(x.documento)} · ${esc(x.edad)} años</span>${x.yaParticipa === 'SI' ? '<br><span class="chip chip-oro" style="margin-top:4px">Ya en el proceso</span>' : ''}</td>
+      <td>${esc(x.nombre)}<br><span class="secundario mini">${esc(x.tipoDoc)} ${esc(x.documento)} · ${esc(x.edad)} años</span>${x.yaParticipa === 'SI' ? '<br><span class="chip chip-oro" style="margin-top:4px">Ya en el proceso</span>' : ''}${chipCondicion(x)}</td>
       <td>${esc(x.acudienteNombre)} <span class="mini secundario">(${esc(x.acudienteParentesco)})</span><br><span class="mini">${esc(x.acudienteTelefono)} · ${esc(x.acudienteEmail)}</span></td>
       <td>${esc(x.barrio)}</td><td>${siNo(x.autorizaImagen)}</td><td>${chipIns(x.estado)}</td>
       <td><button class="btn btn-sec btn-peq" data-acc="ficha" data-ref="${esc(x.referencia)}">Ver ficha</button>${x.estado === 'NUEVA' ? `<button class="btn btn-peq" data-acc="activar" data-ref="${esc(x.referencia)}">Marcar activa</button>` : ''}
@@ -2116,11 +2169,12 @@ async function adminSemillas(caja) {
     etiquetarTablas(caja);
   };
   pintar();
+  eventosFormulario(caja, v, 'SEMILLAS');
   $('#buscar-sem').addEventListener('input', e => { INS.filtro = e.target.value; pintar(); });
   $('#act-sem').addEventListener('click', pintarAdmin);
   $('#hoja-sem').addEventListener('click', e => abrirHojaIns(e.currentTarget));
-  $('#xls-sem').addEventListener('click', () => descargarExcel('Semillas en Movimiento.xlsx', {Semillas: [['Referencia', 'Fecha', 'Estado', 'Participante', 'Tipo doc', 'Documento', 'Fecha de nacimiento', 'Edad', 'Barrio', 'Colegio', 'EPS', 'Ya participaba', 'Acudiente', 'Doc. acudiente', 'Parentesco', 'Celular acudiente', 'Correo acudiente', 'Contacto emergencia', 'Celular emergencia', 'Autoriza imagen', 'Observaciones', 'Notas'],
-    ...v.lista.map(x => [x.referencia, fechaHora(x.creada), (ESTADO_INS[x.estado] || [x.estado])[0], x.nombre, x.tipoDoc, x.documento, x.nacimiento, x.edad, x.barrio, x.colegio, x.eps, siNo(x.yaParticipa), x.acudienteNombre, x.acudienteDoc, x.acudienteParentesco, x.acudienteTelefono, x.acudienteEmail, x.emergenciaNombre, x.emergenciaTelefono, siNo(x.autorizaImagen), x.observaciones, x.notas])]}));
+  $('#xls-sem').addEventListener('click', () => descargarExcel('Semillas en Movimiento.xlsx', {Semillas: [['Referencia', 'Fecha', 'Estado', 'Participante', 'Tipo doc', 'Documento', 'Fecha de nacimiento', 'Edad', 'Barrio', 'Colegio', 'EPS', 'Ya participaba', 'Acudiente', 'Doc. acudiente', 'Parentesco', 'Celular acudiente', 'Correo acudiente', 'Contacto emergencia', 'Celular emergencia', 'Discapacidad o limitación', 'Detalle de la condición', 'Autoriza imagen', 'Observaciones', 'Notas'],
+    ...v.lista.map(x => [x.referencia, fechaHora(x.creada), (ESTADO_INS[x.estado] || [x.estado])[0], x.nombre, x.tipoDoc, x.documento, x.nacimiento, x.edad, x.barrio, x.colegio, x.eps, siNo(x.yaParticipa), x.acudienteNombre, x.acudienteDoc, x.acudienteParentesco, x.acudienteTelefono, x.acudienteEmail, x.emergenciaNombre, x.emergenciaTelefono, CONDICION_INS[x.condicion] || '', x.condicionDetalle, siNo(x.autorizaImagen), x.observaciones, x.notas])]}));
   caja.onclick = async e => {
     const b = e.target.closest('[data-acc]'); if (!b) return;
     const x = v.lista.find(i => i.referencia === b.dataset.ref); if (!x) return;
