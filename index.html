@@ -930,6 +930,8 @@ const ApiDemo = (() => {
         case 'contactos': return db.contactos.slice().reverse();
         case 'mensajes': return db.mensajes.slice().reverse();
         case 'marcarMensaje': { const m = db.mensajes.find(x => x.momento === d.momento); if (m) m.estado = d.estado; guardar(); return true; }
+        case 'inscripciones': return {programa: d.programa, lista: [], cuenta: {}, abiertas: true, recaudo: 0, porNivel: {BASICO: 0, AVANZADO: 0}};
+        case 'enlacesInscripciones': return {hoja: '', excel: '', carpeta: ''};
         case 'baseCompleta': return JSON.parse(JSON.stringify(db));
         case 'reiniciarDemo': db = semilla(); guardar(); return true;
         default: fallo('Acción no disponible.');
@@ -1789,7 +1791,7 @@ async function vistaAdmin(main) {
         <span class="chip ${MODO_DEMO ? 'chip-aviso' : 'chip-ok'}" style="margin-top:6px">${MODO_DEMO ? '⚠ Modo demostración: no se envían correos ni se guarda en Drive' : '✓ Conectado al servidor y a Drive'}</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">Abrir base de datos</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
     <div class="pestanas" role="tablist" aria-label="Secciones del panel">
-      ${[['eventos', 'Eventos: flyer, información y aforo'], ['ventas', 'Ventas y pagos'], ['ingreso', 'Control de ingreso'], ['contactos', 'Contactos'], ['mensajes', 'Mensajes'], ['datos', 'Base de datos (Excel)']].map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
+      ${[['eventos', 'Eventos: flyer, información y aforo'], ['ventas', 'Ventas y pagos'], ['ingreso', 'Control de ingreso'], ['inscripciones', 'Inscripciones a clases'], ['semillas', 'Semillas en Movimiento'], ['contactos', 'Contactos'], ['mensajes', 'Mensajes'], ['datos', 'Base de datos (Excel)']].map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
     </div><section id="admin-cuerpo" role="tabpanel"></section></div>`;
   $('#salir').addEventListener('click', () => { Sesion.salir(); enrutar(); });
   $('#abrir-base').addEventListener('click', abrirBaseDatos);
@@ -1797,6 +1799,7 @@ async function vistaAdmin(main) {
   await pintarAdmin();
 }
 function irPestana(k, editar) {
+  if (ADMIN.pestana !== k) { INS.filtro = ''; INS.estado = ''; }
   ADMIN.pestana = k; ADMIN.editar = editar || null;
   $$('[data-tab]').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === k));
   pintarAdmin();
@@ -1829,7 +1832,7 @@ async function pintarAdmin() {
       const prox = ADMIN.eventos.filter(e => !eventoPasado(e)).sort((a, b) => momentoEvento(a) - momentoEvento(b))[0];
       ADMIN.eventoSel = (prox || ADMIN.eventos[0] || {}).id || '';
     }
-    await ({eventos: adminEventos, ventas: adminVentas, ingreso: adminIngreso, contactos: adminContactos, mensajes: adminMensajes, datos: adminDatos}[ADMIN.pestana])(caja);
+    await ({eventos: adminEventos, ventas: adminVentas, ingreso: adminIngreso, contactos: adminContactos, mensajes: adminMensajes, datos: adminDatos, inscripciones: adminInscripciones, semillas: adminSemillas}[ADMIN.pestana])(caja);
   } catch (err) { caja.innerHTML = `<div class="nota">${esc(err.message)}</div>`; }
 }
 const selectorEvento = (id = 'sel-evento') => `<div class="campo" style="max-width:520px"><label for="${id}">Evento</label><select id="${id}">${ADMIN.eventos.map(e => `<option value="${esc(e.id)}" ${e.id === ADMIN.eventoSel ? 'selected' : ''}>${esc(e.nombre)} · ${esc(e.fecha)}${e.estado !== 'PUBLICADO' ? ' (' + esc(e.estado.toLowerCase()) + ')' : ''}</option>`).join('')}</select></div>`;
@@ -1962,6 +1965,173 @@ function dialogoConfirmar(o) {
     try { const r = await llamarAdmin('confirmarPagoManual', {referencia: o.referencia, comprobante: nota}); m.cerrar(); avisar(r.mensaje || 'Pago confirmado.', 'ok', 9000); pintarAdmin(); }
     catch (err) { desbloquear(b); avisar(err.message, 'error', 8000); }
   });
+}
+
+/* ---------- Inscripciones: clases regulares y Semillas en Movimiento ---------- */
+const ESTADO_INS = {ESPERANDO_PAGO: ['Esperando pago', 'chip-aviso'], EVALUACION: ['En evaluación', 'chip-oro'], ACTIVA: ['Activa', 'chip-ok'], NUEVA: ['Nueva', 'chip-aviso'], RETIRADA: ['Retirada', ''], ANULADA: ['Anulada', 'chip-mal']};
+const NIVEL_INS = {BASICO: 'Nivel básico · Martes 7:00 p. m.', AVANZADO: 'Nivel avanzado · Jueves 7:00 p. m.'};
+const NIVEL_CORTO = {BASICO: 'Básico', AVANZADO: 'Avanzado'};
+const INS = {filtro: '', estado: ''};
+const chipIns = e => { const [t, c] = ESTADO_INS[e] || [e, '']; return `<span class="chip ${c}">${esc(t)}</span>`; };
+const siNo = v => v === 'SI' || v === true ? 'Sí' : 'No';
+const fechaCorta = f => f ? (/^\d{4}-\d{2}-\d{2}$/.test(f) ? new Date(f + 'T12:00:00') : new Date(f)).toLocaleDateString('es-CO', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
+function waIns(tel, texto) { window.open(`https://wa.me/57${tel}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener'); }
+async function abrirHojaIns(btn) {
+  const ventana = window.open('', '_blank');
+  bloquear(btn, 'Abriendo…');
+  try { const r = await llamarAdmin('enlacesInscripciones'); if (ventana) ventana.location.href = r.hoja; else window.open(r.hoja, '_blank', 'noopener'); }
+  catch (err) { if (ventana) ventana.close(); avisar(err.message, 'error', 7000); }
+  desbloquear(btn);
+}
+
+async function adminInscripciones(caja) {
+  const v = await llamarAdmin('inscripciones', {programa: 'CLASES'}), c = v.cuenta || {};
+  const porPagar = v.lista.filter(x => x.estado === 'ESPERANDO_PAGO'), enEval = v.lista.filter(x => x.estado === 'EVALUACION');
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Inscripciones del formulario <a href="https://albarakah.com.co/inscripciones" target="_blank" rel="noopener">albarakah.com.co/inscripciones</a>. Se guardan en la hoja <b>“Inscripciones Barakah”</b> de Drive y su copia en Excel.${v.abiertas ? '' : ' <b style="color:var(--error)">El formulario está cerrado (propiedad INS_ABIERTAS = no).</b>'}</div>
+    <div class="kpis">
+      <div class="kpi"><small>Esperando pago</small><b>${c.ESPERANDO_PAGO || 0}</b></div><div class="kpi"><small>En evaluación</small><b>${c.EVALUACION || 0}</b></div>
+      <div class="kpi"><small>Activas</small><b>${c.ACTIVA || 0}</b></div><div class="kpi"><small>Básico (martes)</small><b>${(v.porNivel || {}).BASICO || 0}</b></div>
+      <div class="kpi"><small>Avanzado (jueves)</small><b>${(v.porNivel || {}).AVANZADO || 0}</b></div><div class="kpi"><small>Recaudo confirmado</small><b>${v.recaudo ? pesos(v.recaudo) : '$0'}</b></div></div>
+    ${porPagar.length ? `<div class="pendientes"><h2 style="font-size:1.15rem;margin-bottom:6px">Pagos por confirmar (${porPagar.length})</h2><p class="mini secundario" style="margin:0 0 6px">Cuando llegue el comprobante por WhatsApp con la referencia, verifica en tu app que el dinero ingresó y confirma: se envía la bienvenida al correo y se actualiza el Excel.</p>
+      ${porPagar.map(x => `<div class="pendiente"><div><b>${esc(x.referencia)}</b> · ${esc(x.nombre)}<br><span class="mini secundario">${esc(NOMBRE_METODO[x.metodo] || x.metodo)} · ${esc(NIVEL_CORTO[x.nivel] || x.nivel)} · ${x.alumnaBarakah === 'SI' ? 'alumna antigua' : 'nueva (con matrícula)'} · ${esc(fechaHora(x.creada))}</span></div>
+        <div style="display:flex;gap:8px;align-items:center"><b class="titulo" style="color:var(--color-brillo);margin:0">${pesos(x.total)}</b><button class="btn btn-peq" data-acc="pagar" data-ref="${esc(x.referencia)}">Confirmar pago</button></div></div>`).join('')}</div>` : ''}
+    ${enEval.length ? `<div class="pendientes"><h2 style="font-size:1.15rem;margin-bottom:6px">Evaluación de nivel avanzado (${enEval.length})</h2><p class="mini secundario" style="margin:0 0 6px">Después de la evaluación de conocimiento e interpretación dancística, aprueba el nivel avanzado o ubica a la persona en el básico. La inscripción queda activa.</p>
+      ${enEval.map(x => `<div class="pendiente"><div><b>${esc(x.referencia)}</b> · ${esc(x.nombre)}<br><span class="mini secundario">${esc(x.edad)} años · ${esc(x.telefono)}</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-peq" data-acc="nivel" data-nivel="AVANZADO" data-ref="${esc(x.referencia)}">Aprobar avanzado</button><button class="btn btn-sec btn-peq" data-acc="nivel" data-nivel="BASICO" data-ref="${esc(x.referencia)}">Ubicar en básico</button></div></div>`).join('')}</div>` : ''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:end;margin:18px 0 12px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;flex:1">
+        <div class="campo" style="flex:1;min-width:200px;max-width:340px"><label for="buscar-ins">Buscar</label><input id="buscar-ins" value="${esc(INS.filtro)}" placeholder="Nombre, documento, celular o referencia"></div>
+        <div class="campo" style="min-width:170px"><label for="estado-ins">Estado</label><select id="estado-ins"><option value="">Todos</option>${['ESPERANDO_PAGO', 'EVALUACION', 'ACTIVA', 'RETIRADA', 'ANULADA'].map(e => `<option value="${e}" ${INS.estado === e ? 'selected' : ''}>${ESTADO_INS[e][0]}</option>`).join('')}</select></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" id="act-ins">Actualizar</button><button class="btn btn-sec btn-peq" type="button" id="hoja-ins">Abrir hoja en Drive</button><button class="btn btn-peq" type="button" id="xls-ins">Descargar (Excel)</button></div></div>
+    <div class="tabla-marco"><table><thead><tr><th>Referencia</th><th>Alumna / alumno</th><th>Contacto</th><th>Nivel</th><th>Pago</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="filas-ins"></tbody></table></div>`;
+  const pintar = () => {
+    const f = INS.filtro.toLowerCase();
+    const lista = v.lista.filter(x => (!INS.estado || x.estado === INS.estado) && (!f || [x.referencia, x.nombre, x.documento, x.telefono, x.email, x.acudienteNombre].join(' ').toLowerCase().includes(f)));
+    $('#filas-ins').innerHTML = lista.map(x => `<tr><td><b>${esc(x.referencia)}</b><br><span class="mini secundario">${esc(fechaHora(x.creada))}</span></td>
+      <td>${esc(x.nombre)}<br><span class="secundario mini">${esc(x.tipoDoc)} ${esc(x.documento)} · ${esc(x.edad)} años</span>${x.menor === 'SI' ? `<br><span class="chip chip-aviso" style="margin-top:4px">Menor · acudiente ${esc(x.acudienteNombre)}</span>` : ''}</td>
+      <td>${esc(x.telefono)}<br><span class="mini">${esc(x.email)}</span>${x.autorizaImagen === 'SI' ? ' <span class="chip chip-ok" title="Autorizó uso de imagen">✓ imagen</span>' : ''}</td>
+      <td>${esc(NIVEL_CORTO[x.nivelAsignado || x.nivel] || '')}${x.nivelAsignado && x.nivelAsignado !== x.nivel ? `<br><span class="mini secundario">eligió ${esc(NIVEL_CORTO[x.nivel] || x.nivel)}</span>` : ''}</td>
+      <td>${pesos(x.total)}<br><span class="mini secundario">${esc(NOMBRE_METODO[x.metodo] || x.metodo)}${x.alumnaBarakah === 'SI' ? ' · antigua' : ' · con matrícula'}${x.comprobante ? ' · ' + esc(x.comprobante) : ''}</span></td>
+      <td>${chipIns(x.estado)}</td>
+      <td><button class="btn btn-sec btn-peq" data-acc="ficha" data-ref="${esc(x.referencia)}">Ver ficha</button>${x.estado === 'ESPERANDO_PAGO' ? `<button class="btn btn-peq" data-acc="pagar" data-ref="${esc(x.referencia)}">Confirmar pago</button>` : ''}
+        <button class="btn btn-sec btn-peq" data-acc="wa" data-ref="${esc(x.referencia)}" title="Abre el chat desde el WhatsApp de este equipo">WhatsApp ${esc(x.menor === 'SI' ? x.acudienteTelefono : x.telefono)}</button></td></tr>`).join('')
+      || `<tr><td colspan="7" class="secundario">${v.lista.length ? 'Sin resultados.' : 'Aún no hay inscripciones.'}</td></tr>`;
+    etiquetarTablas(caja);
+  };
+  pintar();
+  $('#buscar-ins').addEventListener('input', e => { INS.filtro = e.target.value; pintar(); });
+  $('#estado-ins').addEventListener('change', e => { INS.estado = e.target.value; pintar(); });
+  $('#act-ins').addEventListener('click', pintarAdmin);
+  $('#hoja-ins').addEventListener('click', e => abrirHojaIns(e.currentTarget));
+  $('#xls-ins').addEventListener('click', () => descargarExcel('Inscripciones Barakah.xlsx', {Inscripciones: [['Referencia', 'Fecha', 'Estado', 'Nombre', 'Tipo doc', 'Documento', 'Fecha de nacimiento', 'Edad', 'Celular', 'Correo', 'Nivel elegido', 'Nivel asignado', 'Alumna antigua', 'Matrícula', 'Mensualidad', 'Total', 'Medio de pago', 'Fecha de pago', 'Comprobante', 'Menor', 'Acudiente', 'Doc. acudiente', 'Parentesco', 'Celular acudiente', 'Correo acudiente', 'Contacto emergencia', 'Celular emergencia', 'Autoriza imagen', 'Cuéntanos de ti', 'Notas'],
+    ...v.lista.map(x => [x.referencia, fechaHora(x.creada), (ESTADO_INS[x.estado] || [x.estado])[0], x.nombre, x.tipoDoc, x.documento, x.nacimiento, x.edad, x.telefono, x.email, NIVEL_CORTO[x.nivel] || x.nivel, NIVEL_CORTO[x.nivelAsignado] || '', siNo(x.alumnaBarakah), x.matricula, x.mensualidad, x.total, NOMBRE_METODO[x.metodo] || x.metodo, fechaHora(x.pagada), x.comprobante, siNo(x.menor), x.acudienteNombre, x.acudienteDoc, x.acudienteParentesco, x.acudienteTelefono, x.acudienteEmail, x.emergenciaNombre, x.emergenciaTelefono, siNo(x.autorizaImagen), x.sobreTi, x.notas])]}));
+  caja.onclick = async e => {
+    const b = e.target.closest('[data-acc]'); if (!b) return;
+    const x = v.lista.find(i => i.referencia === b.dataset.ref); if (!x) return;
+    if (b.dataset.acc === 'pagar') return dialogoPagoIns(x);
+    if (b.dataset.acc === 'ficha') return fichaIns(x, 'CLASES');
+    if (b.dataset.acc === 'wa') {
+      const pn = (x.menor === 'SI' ? x.acudienteNombre : x.nombre).split(' ')[0];
+      const t = x.estado === 'ESPERANDO_PAGO' ? `Hola ${pn}, te escribimos de la Corporación Cultural y Artística Barakah sobre la inscripción ${x.referencia}${x.menor === 'SI' ? ' de ' + x.nombre : ''}.`
+        : x.estado === 'EVALUACION' ? `Hola ${pn}, te escribimos de la Corporación Cultural y Artística Barakah para acordar la evaluación del nivel avanzado (inscripción ${x.referencia}).`
+        : `Hola ${pn}, te escribimos de la Corporación Cultural y Artística Barakah.`;
+      return waIns(x.menor === 'SI' ? x.acudienteTelefono : x.telefono, t);
+    }
+    if (b.dataset.acc === 'nivel') {
+      bloquear(b, '…');
+      try { await llamarAdmin('actualizarInscripcion', {programa: 'CLASES', referencia: x.referencia, nivelAsignado: b.dataset.nivel}); avisar(`${x.nombre} quedó activa en ${NIVEL_INS[b.dataset.nivel]}`, 'ok', 6000); pintarAdmin(); }
+      catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+    }
+  };
+}
+function dialogoPagoIns(x) {
+  const m = abrirModal(`<h2>Confirmar pago de inscripción</h2>
+    <div class="pago-datos">
+      <div class="pago-fila monto"><div><small>Valor que debe haber llegado</small><b>${pesos(x.total)}</b><small>${x.matricula ? `Matrícula ${pesos(x.matricula)} + ` : ''}mensualidad ${pesos(x.mensualidad)}</small></div></div>
+      <div class="pago-fila"><div><small>Medio</small><b>${esc(NOMBRE_METODO[x.metodo] || x.metodo)}</b></div></div>
+      <div class="pago-fila"><div><small>Alumna / alumno</small><b>${esc(x.nombre)}</b><small>${esc(x.email)} · ${esc(x.telefono)}</small></div></div>
+      <div class="pago-fila"><div><small>Referencia · Nivel</small><b>${esc(x.referencia)}</b><small>${esc(NIVEL_INS[x.nivel] || x.nivel)}</small></div></div></div>
+    ${x.alumnaBarakah === 'SI' ? '<p class="nota" style="margin:0 0 14px">Marcó que <b>ya estudia en Barakah</b> (sin matrícula). Verifica que sea alumna o alumno antiguo.</p>' : ''}
+    ${x.nivel === 'AVANZADO' ? '<p class="nota" style="margin:0 0 14px">Eligió <b>nivel avanzado</b>: al confirmar queda <b>en evaluación</b> y el correo le explica el proceso.</p>' : ''}
+    <div class="campo"><label for="comp-ins">Número o nota del comprobante (opcional)</label><input id="comp-ins" maxlength="120" placeholder="Ej.: M12345678 · 4 nov 9:15 a. m."></div>
+    <p class="nota" style="margin-top:14px">Antes de confirmar, verifica en tu app de ${x.metodo === 'BANCOLOMBIA' ? 'Bancolombia' : 'Nequi'} que el dinero ingresó. Al confirmar se envía la bienvenida al correo y se actualiza el Excel.</p>
+    <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-dorado" type="button" id="ok-pago-ins">Confirmar y enviar bienvenida</button></div>`);
+  $('#ok-pago-ins', m.caja).addEventListener('click', async e => {
+    const b = e.currentTarget; bloquear(b, 'Confirmando…');
+    try { const r = await llamarAdmin('confirmarPagoInscripcion', {referencia: x.referencia, comprobante: $('#comp-ins', m.caja).value.trim()}); m.cerrar(); avisar(r.mensaje || 'Pago confirmado.', 'ok', 9000); pintarAdmin(); }
+    catch (err) { desbloquear(b); avisar(err.message, 'error', 8000); }
+  });
+}
+function fichaIns(x, programa) {
+  const sem = programa === 'SEMILLAS';
+  const fila = (k, v) => v === '' || v == null ? '' : `<div class="pago-fila"><div><small>${esc(k)}</small><b style="font-size:1rem;white-space:pre-wrap">${esc(v)}</b></div></div>`;
+  const estados = sem ? ['NUEVA', 'ACTIVA', 'RETIRADA', 'ANULADA'] : ['ESPERANDO_PAGO', 'EVALUACION', 'ACTIVA', 'RETIRADA', 'ANULADA'];
+  const m = abrirModal(`<h2>${esc(x.nombre)}</h2>
+    <p class="secundario mini" style="margin-top:-6px">${esc(x.referencia)} · inscrita el ${esc(fechaHora(x.creada))} · ${chipIns(x.estado)}</p>
+    <div class="pago-datos">
+      ${fila('Documento', x.tipoDoc + ' ' + x.documento)}${fila('Fecha de nacimiento', fechaCorta(x.nacimiento) + ' · ' + x.edad + ' años')}
+      ${sem ? fila('Barrio', x.barrio) + fila('Colegio', x.colegio) + fila('EPS', x.eps) + fila('Ya participaba en el proceso', siNo(x.yaParticipa)) + fila('Observaciones', x.observaciones)
+        : fila('Celular (WhatsApp)', x.telefono) + fila('Correo', x.email) + fila('Nivel elegido', NIVEL_INS[x.nivel] || x.nivel) + fila('Nivel asignado', NIVEL_INS[x.nivelAsignado] || '') + fila('Pago', `${pesos(x.total)} · ${NOMBRE_METODO[x.metodo] || x.metodo}${x.pagada ? ' · confirmado el ' + fechaHora(x.pagada) : ' · pendiente'}${x.comprobante ? ' · ' + x.comprobante : ''}`) + fila('Alumna antigua', siNo(x.alumnaBarakah)) + fila('Cuéntanos de ti', x.sobreTi)}
+      ${x.acudienteNombre ? fila('Acudiente', `${x.acudienteNombre} (${x.acudienteParentesco}) · ${x.acudienteTipoDoc} ${x.acudienteDoc}`) + fila('Contacto del acudiente', [x.acudienteTelefono, x.acudienteEmail].filter(Boolean).join(' · ')) : ''}
+      ${fila('Contacto de emergencia', [x.emergenciaNombre, x.emergenciaTelefono].filter(Boolean).join(' · '))}
+      ${fila('Autorizaciones', `Reglamento: ${siNo(x.aceptaReglamento)} · Datos: ${siNo(x.autorizaDatos)} · Imagen: ${siNo(x.autorizaImagen)} · versión ${x.versionPoliticas}`)}
+      ${fila('Correos', x.correo)}</div>
+    <div class="form-grid dos" style="margin-top:14px">
+      <div class="campo"><label for="f-estado">Estado</label><select id="f-estado">${estados.map(e => `<option value="${e}" ${x.estado === e ? 'selected' : ''}>${ESTADO_INS[e][0]}</option>`).join('')}</select></div>
+      ${sem ? '' : `<div class="campo"><label for="f-nivel">Nivel asignado</label><select id="f-nivel"><option value="">Sin asignar</option>${Object.keys(NIVEL_INS).map(n => `<option value="${n}" ${x.nivelAsignado === n ? 'selected' : ''}>${NIVEL_INS[n]}</option>`).join('')}</select></div>`}
+      <div class="campo col-2"><label for="f-notas">Notas internas</label><textarea id="f-notas" maxlength="500">${esc(x.notas)}</textarea></div></div>
+    <div class="acciones"><button class="btn btn-sec" type="button" id="f-correo">Reenviar correo</button><button class="btn btn-sec" type="button" data-cerrar>Cerrar</button><button class="btn btn-dorado" type="button" id="f-guardar">Guardar cambios</button></div>`, {ancho: true});
+  $('#f-guardar', m.caja).addEventListener('click', async e => {
+    const b = e.currentTarget, datos = {programa, referencia: x.referencia, estado: $('#f-estado', m.caja).value, notas: $('#f-notas', m.caja).value};
+    if (!sem) datos.nivelAsignado = $('#f-nivel', m.caja).value;
+    bloquear(b, 'Guardando…');
+    try { await llamarAdmin('actualizarInscripcion', datos); m.cerrar(); avisar('Inscripción actualizada.', 'ok'); pintarAdmin(); }
+    catch (err) { desbloquear(b); avisar(err.message, 'error', 8000); }
+  });
+  $('#f-correo', m.caja).addEventListener('click', async e => {
+    const b = e.currentTarget; bloquear(b, 'Enviando…');
+    try { const r = await llamarAdmin('reenviarInscripcion', {programa, referencia: x.referencia}); avisar(r.mensaje || 'Correo reenviado.', 'ok', 7000); } catch (err) { avisar(err.message, 'error', 7000); }
+    desbloquear(b);
+  });
+}
+async function adminSemillas(caja) {
+  const v = await llamarAdmin('inscripciones', {programa: 'SEMILLAS'}), c = v.cuenta || {};
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Inscripciones gratuitas del formulario <a href="https://albarakah.com.co/semillas" target="_blank" rel="noopener">albarakah.com.co/semillas</a>. Las hace el acudiente de cada participante. Se guardan en la hoja <b>“Inscripciones Barakah”</b>, pestaña “Semillas”.${v.abiertas ? '' : ' <b style="color:var(--error)">El formulario está cerrado (propiedad SEM_ABIERTAS = no).</b>'}</div>
+    <div class="kpis"><div class="kpi"><small>Nuevas por contactar</small><b>${c.NUEVA || 0}</b></div><div class="kpi"><small>Activas</small><b>${c.ACTIVA || 0}</b></div>
+      <div class="kpi"><small>Ya estaban en el proceso</small><b>${v.lista.filter(x => x.yaParticipa === 'SI' && ['NUEVA', 'ACTIVA'].includes(x.estado)).length}</b></div><div class="kpi"><small>Autorizan imagen</small><b>${v.lista.filter(x => x.autorizaImagen === 'SI' && ['NUEVA', 'ACTIVA'].includes(x.estado)).length}</b></div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:end;margin:6px 0 12px">
+      <div class="campo" style="flex:1;min-width:200px;max-width:380px"><label for="buscar-sem">Buscar</label><input id="buscar-sem" value="${esc(INS.filtro)}" placeholder="Participante, acudiente, documento o barrio"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" id="act-sem">Actualizar</button><button class="btn btn-sec btn-peq" type="button" id="hoja-sem">Abrir hoja en Drive</button><button class="btn btn-peq" type="button" id="xls-sem">Descargar (Excel)</button></div></div>
+    <div class="tabla-marco"><table><thead><tr><th>Referencia</th><th>Participante</th><th>Acudiente</th><th>Barrio</th><th>Autoriza imagen</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="filas-sem"></tbody></table></div>`;
+  const pintar = () => {
+    const f = INS.filtro.toLowerCase();
+    const lista = v.lista.filter(x => !f || [x.referencia, x.nombre, x.documento, x.acudienteNombre, x.acudienteTelefono, x.barrio].join(' ').toLowerCase().includes(f));
+    $('#filas-sem').innerHTML = lista.map(x => `<tr><td><b>${esc(x.referencia)}</b><br><span class="mini secundario">${esc(fechaHora(x.creada))}</span></td>
+      <td>${esc(x.nombre)}<br><span class="secundario mini">${esc(x.tipoDoc)} ${esc(x.documento)} · ${esc(x.edad)} años</span>${x.yaParticipa === 'SI' ? '<br><span class="chip chip-oro" style="margin-top:4px">Ya en el proceso</span>' : ''}</td>
+      <td>${esc(x.acudienteNombre)} <span class="mini secundario">(${esc(x.acudienteParentesco)})</span><br><span class="mini">${esc(x.acudienteTelefono)} · ${esc(x.acudienteEmail)}</span></td>
+      <td>${esc(x.barrio)}</td><td>${siNo(x.autorizaImagen)}</td><td>${chipIns(x.estado)}</td>
+      <td><button class="btn btn-sec btn-peq" data-acc="ficha" data-ref="${esc(x.referencia)}">Ver ficha</button>${x.estado === 'NUEVA' ? `<button class="btn btn-peq" data-acc="activar" data-ref="${esc(x.referencia)}">Marcar activa</button>` : ''}
+        <button class="btn btn-sec btn-peq" data-acc="wa" data-ref="${esc(x.referencia)}">WhatsApp ${esc(x.acudienteTelefono)}</button></td></tr>`).join('')
+      || `<tr><td colspan="7" class="secundario">${v.lista.length ? 'Sin resultados.' : 'Aún no hay inscripciones.'}</td></tr>`;
+    etiquetarTablas(caja);
+  };
+  pintar();
+  $('#buscar-sem').addEventListener('input', e => { INS.filtro = e.target.value; pintar(); });
+  $('#act-sem').addEventListener('click', pintarAdmin);
+  $('#hoja-sem').addEventListener('click', e => abrirHojaIns(e.currentTarget));
+  $('#xls-sem').addEventListener('click', () => descargarExcel('Semillas en Movimiento.xlsx', {Semillas: [['Referencia', 'Fecha', 'Estado', 'Participante', 'Tipo doc', 'Documento', 'Fecha de nacimiento', 'Edad', 'Barrio', 'Colegio', 'EPS', 'Ya participaba', 'Acudiente', 'Doc. acudiente', 'Parentesco', 'Celular acudiente', 'Correo acudiente', 'Contacto emergencia', 'Celular emergencia', 'Autoriza imagen', 'Observaciones', 'Notas'],
+    ...v.lista.map(x => [x.referencia, fechaHora(x.creada), (ESTADO_INS[x.estado] || [x.estado])[0], x.nombre, x.tipoDoc, x.documento, x.nacimiento, x.edad, x.barrio, x.colegio, x.eps, siNo(x.yaParticipa), x.acudienteNombre, x.acudienteDoc, x.acudienteParentesco, x.acudienteTelefono, x.acudienteEmail, x.emergenciaNombre, x.emergenciaTelefono, siNo(x.autorizaImagen), x.observaciones, x.notas])]}));
+  caja.onclick = async e => {
+    const b = e.target.closest('[data-acc]'); if (!b) return;
+    const x = v.lista.find(i => i.referencia === b.dataset.ref); if (!x) return;
+    if (b.dataset.acc === 'ficha') return fichaIns(x, 'SEMILLAS');
+    if (b.dataset.acc === 'wa') return waIns(x.acudienteTelefono, `Hola ${x.acudienteNombre.split(' ')[0]}, te escribimos de la Corporación Cultural y Artística Barakah sobre la inscripción de ${x.nombre} en Semillas en Movimiento.`);
+    if (b.dataset.acc === 'activar') {
+      bloquear(b, '…');
+      try { await llamarAdmin('actualizarInscripcion', {programa: 'SEMILLAS', referencia: x.referencia, estado: 'ACTIVA'}); avisar(`${x.nombre} quedó activa.`, 'ok'); pintarAdmin(); }
+      catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+    }
+  };
 }
 
 /* ---------- Eventos: crear y editar (aforo, flyer e información) ---------- */
