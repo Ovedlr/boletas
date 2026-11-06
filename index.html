@@ -1791,25 +1791,26 @@ async function descargarPDF(o, btn, imprimir) {
    ========================================================================== */
 const SECCIONES_ADMIN = {
   eventos: {titulo: 'Boletería y eventos', pestanas: [['eventos', 'Eventos: flyer, información y aforo'], ['ventas', 'Ventas y pagos'], ['ingreso', 'Control de ingreso'], ['contactos', 'Contactos'], ['mensajes', 'Mensajes'], ['datos', 'Base de datos (Excel)']]},
-  inscripciones: {titulo: 'Inscripciones a clases', pestanas: [['inscripciones', 'Clases regulares'], ['semillas', 'Semillas en Movimiento']]}
+  inscripciones: {titulo: 'Inscripciones a clases', pestanas: [['inscripciones', 'Clases regulares'], ['semillas', 'Semillas en Movimiento']]},
+  web: {titulo: 'Página web', pestanas: [['comentarios', 'Comentarios y reseñas'], ['blog', 'Blog']]}
 };
-const seccionGuardada = () => { try { return sessionStorage.getItem('barakah_seccion') === 'inscripciones' ? 'inscripciones' : 'eventos'; } catch (e) { return 'eventos'; } };
-let ADMIN = {seccion: seccionGuardada(), pestana: seccionGuardada() === 'inscripciones' ? 'inscripciones' : 'eventos', eventos: [], eventoSel: '', editar: null};
+const seccionGuardada = () => { try { const k = sessionStorage.getItem('barakah_seccion'); return SECCIONES_ADMIN[k] ? k : 'eventos'; } catch (e) { return 'eventos'; } };
+let ADMIN = {seccion: seccionGuardada(), pestana: SECCIONES_ADMIN[seccionGuardada()].pestanas[0][0], eventos: [], eventoSel: '', editar: null};
 async function vistaAdmin(main) {
   document.title = 'Panel · Boletería ' + CONFIG.NOMBRE_CORTO;
   if (!Sesion.token()) return loginAdmin(main);
   main.innerHTML = `<div class="contenedor">
     <div class="admin-cab"><div><h1 style="font-size:clamp(1.6rem,4vw,2.2rem);margin:0">Panel de administración</h1>
         <span class="chip ${MODO_DEMO ? 'chip-aviso' : 'chip-ok'}" style="margin-top:6px">${MODO_DEMO ? '⚠ Modo demostración: no se envían correos ni se guarda en Drive' : '✓ Conectado al servidor y a Drive'}</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : ADMIN.seccion === 'web' ? 'Ver la página web' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
     <div class="secciones-admin" role="group" aria-label="Área del panel">
-      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${k === 'eventos' ? '🎟️' : '💃'}</span> ${esc(sec.titulo)}</button>`).join('')}
+      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${{eventos: '🎟️', inscripciones: '💃', web: '🌐'}[k]}</span> ${esc(sec.titulo)}</button>`).join('')}
     </div>
     <div class="pestanas" role="tablist" aria-label="Pestañas de ${esc(SECCIONES_ADMIN[ADMIN.seccion].titulo)}">
       ${SECCIONES_ADMIN[ADMIN.seccion].pestanas.map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
     </div><section id="admin-cuerpo" role="tabpanel"></section></div>`;
   $('#salir').addEventListener('click', () => { Sesion.salir(); enrutar(); });
-  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : abrirBaseDatos());
+  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : ADMIN.seccion === 'web' ? window.open('https://albarakah.com.co/', '_blank', 'noopener') : abrirBaseDatos());
   $$('[data-seccion]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.seccion; if (k === ADMIN.seccion) return;
     ADMIN.seccion = k; ADMIN.pestana = SECCIONES_ADMIN[k].pestanas[0][0]; INS.filtro = ''; INS.estado = '';
@@ -1820,7 +1821,7 @@ async function vistaAdmin(main) {
   await pintarAdmin();
 }
 function irPestana(k, editar) {
-  if (ADMIN.pestana !== k) { INS.filtro = ''; INS.estado = ''; }
+  if (ADMIN.pestana !== k) { INS.filtro = ''; INS.estado = ''; WEB.editar = undefined; }
   ADMIN.pestana = k; ADMIN.editar = editar || null;
   $$('[data-tab]').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === k));
   pintarAdmin();
@@ -1849,6 +1850,7 @@ async function pintarAdmin() {
   caja.innerHTML = cargando();
   try {
     if (ADMIN.seccion === 'inscripciones') { await ({inscripciones: adminInscripciones, semillas: adminSemillas}[ADMIN.pestana] || adminInscripciones)(caja); return; }
+    if (ADMIN.seccion === 'web') { await ({comentarios: adminComentarios, blog: adminBlog}[ADMIN.pestana] || adminComentarios)(caja); return; }
     ADMIN.eventos = (await llamarAdmin('eventos')).sort((a, b) => momentoEvento(b) - momentoEvento(a));
     if (!ADMIN.eventoSel || !ADMIN.eventos.find(e => e.id === ADMIN.eventoSel)) {
       const prox = ADMIN.eventos.filter(e => !eventoPasado(e)).sort((a, b) => momentoEvento(a) - momentoEvento(b))[0];
@@ -2181,6 +2183,151 @@ function dialogoReiniciarIns(programa, total) {
     catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); $('#ri-clave', m.caja).select(); }
   });
 }
+/* ---------- Página web: comentarios (testimonios y reseñas) ---------- */
+const WEB = {filtro: 'PENDIENTES'};
+const estrellasTxt = n => n ? '★'.repeat(n) + '☆'.repeat(5 - n) : '';
+async function adminComentarios(caja) {
+  const v = await llamarAdmin('comentariosAdmin'), a = v.alertas || {};
+  const pub = v.lista.filter(x => x.estado === 'PUBLICADO'), res = pub.filter(x => x.tipo === 'RESENA' && Number(x.estrellas));
+  const prom = res.length ? (res.reduce((s, x) => s + Number(x.estrellas), 0) / res.length).toFixed(1).replace('.', ',') : '—';
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Testimonios y reseñas que la gente escribe en <a href="https://albarakah.com.co/#testimonios" target="_blank" rel="noopener">albarakah.com.co</a>. Se publican solos (el filtro bloquea groserías, enlaces y robots). Desde aquí respondes, ocultas o eliminas. Se guardan en la hoja <b>“Página web Barakah”</b> de Drive.</div>
+    <div class="kpis"><div class="kpi"><small>Sin responder</small><b>${v.sinResponder}</b></div><div class="kpi"><small>Publicados</small><b>${pub.length}</b></div>
+      <div class="kpi"><small>Ocultos</small><b>${v.lista.length - pub.length}</b></div><div class="kpi"><small>Promedio reseñas</small><b>${prom}${res.length ? ' ★' : ''}</b></div></div>
+    <details class="tarjeta" style="margin:6px 0 16px" ${a.tieneClave ? '' : 'open'}><summary style="cursor:pointer;font-weight:700">📲 Alerta por WhatsApp de cada comentario nuevo ${a.tieneClave && a.activa ? '<span class="chip chip-ok">Activa</span>' : '<span class="chip chip-aviso">Sin activar</span>'}</summary>
+      <p class="mini secundario" style="margin:10px 0">Siempre te llega un correo a <b>${esc(a.correo || '')}</b>. Para recibir también un WhatsApp (servicio gratuito CallMeBot):</p>
+      <ol class="mini" style="margin:0 0 12px;padding-left:20px;line-height:1.7"><li>Guarda en tus contactos el número de CallMeBot que aparece en <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener">callmebot.com</a>.</li>
+        <li>Desde el WhatsApp que recibirá las alertas, envíale este mensaje: <b>I allow callmebot to send me messages</b></li><li>Te responde con tu clave (<i>apikey</i>). Escríbela aquí con tu celular, guarda y prueba.</li></ol>
+      <form id="form-alerta" class="form-grid" novalidate style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:end">
+        <div class="campo"><label for="al-tel">Celular que recibe</label><input id="al-tel" inputmode="numeric" value="${esc(a.telefono || '')}" placeholder="3001234567"></div>
+        <div class="campo"><label for="al-key">Clave de CallMeBot</label><input id="al-key" type="password" autocomplete="off" placeholder="${a.tieneClave ? '•••••• (guardada)' : 'apikey'}"></div>
+        <label class="check"><input type="checkbox" id="al-activa" ${a.activa ? 'checked' : ''}><span>Alerta activa</span></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-peq" type="submit">Guardar</button><button class="btn btn-sec btn-peq" type="button" id="al-probar">Enviar prueba</button></div></form></details>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:end;margin:6px 0 12px">
+      <div class="pestanas" role="group" aria-label="Filtrar comentarios" style="margin:0">${[['PENDIENTES', 'Sin responder'], ['TODOS', 'Todos'], ['TESTIMONIO', 'Testimonios'], ['RESENA', 'Reseñas'], ['OCULTO', 'Ocultos']].map(([k, t]) => `<button type="button" data-filtro="${k}" aria-selected="${WEB.filtro === k}">${t}</button>`).join('')}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" id="act-com">Actualizar</button><button class="btn btn-peq" type="button" id="xls-com">Descargar (Excel)</button></div></div>
+    <div id="lista-com" style="display:grid;gap:12px"></div>`;
+  const pintar = () => {
+    const f = WEB.filtro;
+    const lista = v.lista.filter(x => f === 'TODOS' || (f === 'PENDIENTES' ? x.estado === 'PUBLICADO' && !x.respuesta : f === 'OCULTO' ? x.estado === 'OCULTO' : x.tipo === f));
+    $('#lista-com').innerHTML = lista.map(x => `<article class="tarjeta" style="margin:0${x.estado === 'OCULTO' ? ';opacity:.7' : ''}">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center">
+          <div><span class="chip ${x.tipo === 'RESENA' ? 'chip-oro' : ''}">${x.tipo === 'RESENA' ? 'Reseña' : 'Testimonio'}</span> ${x.estado === 'OCULTO' ? '<span class="chip chip-mal">Oculto</span>' : ''} ${x.respuesta ? '<span class="chip chip-ok">Respondido</span>' : '<span class="chip chip-aviso">Sin responder</span>'}</div>
+          <span class="mini secundario">${esc(x.id)} · ${esc(fechaHora(x.creado))}</span></div>
+        <p style="margin:10px 0 4px"><b>${esc(x.nombre)}</b> <span class="mini secundario">· ${esc(x.relacion)}${x.email ? ' · ' + esc(x.email) : ''}</span> ${x.estrellas ? `<span style="color:var(--color-principal)" aria-label="${x.estrellas} de 5 estrellas">${estrellasTxt(Number(x.estrellas))}</span>` : ''}</p>
+        <p style="margin:0;white-space:pre-line">${esc(x.texto)}</p>
+        ${x.respuesta ? `<div class="nota" style="margin:12px 0 0"><b>Respuesta de Barakah</b> <span class="mini secundario">${esc(fechaHora(x.respondido))}</span><br><span style="white-space:pre-line">${esc(x.respuesta)}</span></div>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-peq" data-acc="responder" data-id="${esc(x.id)}">${x.respuesta ? 'Editar respuesta' : 'Responder'}</button>
+          <button class="btn btn-sec btn-peq" data-acc="estado" data-id="${esc(x.id)}">${x.estado === 'OCULTO' ? 'Mostrar en la página' : 'Ocultar de la página'}</button>
+          <button class="btn btn-peligro btn-peq" data-acc="eliminar" data-id="${esc(x.id)}">Eliminar</button></div></article>`).join('')
+      || `<div class="nota">${v.lista.length ? 'No hay comentarios con este filtro.' : 'Aún no hay comentarios. Aparecerán aquí apenas alguien escriba en la página.'}</div>`;
+    $$('[data-filtro]', caja).forEach(b => b.setAttribute('aria-selected', b.dataset.filtro === f));
+  };
+  pintar();
+  $$('[data-filtro]', caja).forEach(b => b.addEventListener('click', () => { WEB.filtro = b.dataset.filtro; pintar(); }));
+  $('#act-com').addEventListener('click', pintarAdmin);
+  $('#xls-com').addEventListener('click', () => descargarExcel('Comentarios pagina web.xlsx', {Comentarios: [['Código', 'Fecha', 'Tipo', 'Estado', 'Nombre', 'Relación', 'Estrellas', 'Comentario', 'Correo', 'Respuesta', 'Respondido'],
+    ...v.lista.map(x => [x.id, fechaHora(x.creado), x.tipo === 'RESENA' ? 'Reseña' : 'Testimonio', x.estado === 'OCULTO' ? 'Oculto' : 'Publicado', x.nombre, x.relacion, x.estrellas, x.texto, x.email, x.respuesta, x.respondido ? fechaHora(x.respondido) : ''])]}));
+  $('#form-alerta').addEventListener('submit', async e => {
+    e.preventDefault(); const b = $('button[type=submit]', e.target); bloquear(b, 'Guardando…');
+    const d = {telefono: $('#al-tel').value, activa: $('#al-activa').checked}; if ($('#al-key').value.trim()) d.apikey = $('#al-key').value.trim();
+    try { await llamarAdmin('alertas', d); avisar('Alerta guardada.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+  });
+  $('#al-probar').addEventListener('click', async e => { const b = e.currentTarget; bloquear(b, 'Enviando…'); try { const r = await llamarAdmin('probarAlerta'); avisar(r.mensaje, 'ok'); } catch (err) { avisar(err.message, 'error', 8000); } desbloquear(b); });
+  caja.onclick = async e => {
+    const b = e.target.closest('[data-acc]'); if (!b) return;
+    const x = v.lista.find(c => c.id === b.dataset.id); if (!x) return;
+    if (b.dataset.acc === 'responder') return dialogoResponder(x);
+    if (b.dataset.acc === 'eliminar') return dialogoEliminarComentario(x);
+    bloquear(b, '…');
+    try { await llamarAdmin('estadoComentario', {id: x.id, estado: x.estado === 'OCULTO' ? 'PUBLICADO' : 'OCULTO'}); avisar(x.estado === 'OCULTO' ? 'Comentario visible otra vez en la página.' : 'Comentario oculto: ya no se ve en la página.', 'ok'); pintarAdmin(); }
+    catch (err) { desbloquear(b); avisar(err.message, 'error'); }
+  };
+}
+function dialogoResponder(x) {
+  const m = abrirModal(`<h2>${x.respuesta ? 'Editar respuesta' : 'Responder'} a ${esc(x.nombre)}</h2>
+    <div class="nota" style="margin:0 0 12px">${x.estrellas ? `<span style="color:var(--color-principal)">${estrellasTxt(Number(x.estrellas))}</span><br>` : ''}<span style="white-space:pre-line">${esc(x.texto)}</span></div>
+    <div class="campo"><label for="resp-txt">Respuesta de Barakah (se publica debajo del comentario)</label><textarea id="resp-txt" rows="6" maxlength="1500">${esc(x.respuesta || '')}</textarea></div>
+    <p class="mini secundario" style="margin:8px 0 0">Consejo: agradece, reconoce, explica con claridad y ofrece una solución.${x.email ? ` También le enviaremos la respuesta a <b>${esc(x.email)}</b>.` : ''}</p>
+    <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="button" id="resp-ok">Publicar respuesta</button></div>`, {ancho: true});
+  $('#resp-ok', m.caja).addEventListener('click', async e => {
+    const t = $('#resp-txt', m.caja).value.trim(); if (t.length < 3) { avisar('Escribe la respuesta.', 'error'); return; }
+    const b = e.currentTarget; bloquear(b, 'Publicando…');
+    try { const r = await llamarAdmin('responderComentario', {id: x.id, respuesta: t}); m.cerrar(); avisar(r.mensaje || 'Respuesta publicada.', 'ok', 6000); pintarAdmin(); }
+    catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+  });
+}
+function dialogoEliminarComentario(x) {
+  const m = abrirModal(`<h2>Eliminar comentario</h2><p>El comentario de <b>${esc(x.nombre)}</b> se borra definitivamente de la página y de la hoja de Drive.</p>
+    <p class="nota" style="margin:0 0 14px">Si solo no quieres que se vea, usa <b>Ocultar de la página</b>: así queda el registro. Elimina cuando la persona lo pida o sea una prueba.</p>
+    <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="button" id="elc-ok" style="border-width:2px">Sí, eliminar</button></div>`);
+  $('#elc-ok', m.caja).addEventListener('click', async e => {
+    const b = e.currentTarget; bloquear(b, 'Eliminando…');
+    try { await llamarAdmin('eliminarComentario', {id: x.id}); m.cerrar(); avisar('Comentario eliminado.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(b); avisar(err.message, 'error'); }
+  });
+}
+
+/* ---------- Página web: blog ---------- */
+const CATEGORIAS_BLOG = ['Danza', 'Música', 'Arte', 'Culturas', 'Barakah'];
+async function adminBlog(caja) {
+  const lista = await llamarAdmin('blogAdmin');
+  if (WEB.editar !== undefined) return editorArticulo(caja, WEB.editar === null ? {} : (lista.find(a => a.id === WEB.editar) || {}));
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Artículos de <a href="https://albarakah.com.co/blog" target="_blank" rel="noopener">albarakah.com.co/blog</a>. Los 3 más recientes aparecen solos en la sección Blog del inicio. Los borradores no se ven en la página.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;margin-bottom:12px"><button class="btn btn-dorado" type="button" id="nuevo-art">+ Nuevo artículo</button><button class="btn btn-sec btn-peq" type="button" id="act-blog">Actualizar</button></div>
+    <div class="tabla-marco"><table><thead><tr><th>Artículo</th><th>Tema</th><th>Estado</th><th>Publicado</th><th>Acciones</th></tr></thead><tbody>
+    ${lista.map(a => `<tr><td><b>${esc(a.titulo)}</b><br><span class="mini secundario">/blog/${esc(a.slug)}</span></td><td>${esc(a.categoria)}</td>
+      <td>${a.estado === 'PUBLICADO' ? '<span class="chip chip-ok">Publicado</span>' : '<span class="chip chip-aviso">Borrador</span>'}</td><td>${a.publicado ? esc(fechaHora(a.publicado)) : '—'}</td>
+      <td><button class="btn btn-peq" data-acc="editar" data-id="${esc(a.id)}">Editar</button>${a.estado === 'PUBLICADO' ? `<a class="btn btn-sec btn-peq" href="https://albarakah.com.co/blog/${esc(a.slug)}" target="_blank" rel="noopener">Ver</a>` : ''}
+        <button class="btn btn-peligro btn-peq" data-acc="eliminar" data-id="${esc(a.id)}">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="5" class="secundario">Aún no hay artículos. Escribe el primero.</td></tr>'}
+    </tbody></table></div>`;
+  etiquetarTablas(caja);
+  $('#nuevo-art').addEventListener('click', () => { WEB.editar = null; pintarAdmin(); });
+  $('#act-blog').addEventListener('click', pintarAdmin);
+  caja.onclick = e => {
+    const b = e.target.closest('[data-acc]'); if (!b) return;
+    const a = lista.find(x => x.id === b.dataset.id); if (!a) return;
+    if (b.dataset.acc === 'editar') { WEB.editar = a.id; pintarAdmin(); return; }
+    const m = abrirModal(`<h2>Eliminar artículo</h2><p>“<b>${esc(a.titulo)}</b>” se borra definitivamente del blog.</p><p class="nota" style="margin:0 0 14px">Si solo quieres retirarlo por un tiempo, edítalo y guárdalo como <b>borrador</b>.</p>
+      <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="button" id="ela-ok" style="border-width:2px">Sí, eliminar</button></div>`);
+    $('#ela-ok', m.caja).addEventListener('click', async ev => { const bb = ev.currentTarget; bloquear(bb, 'Eliminando…');
+      try { await llamarAdmin('eliminarArticulo', {id: a.id}); m.cerrar(); avisar('Artículo eliminado.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(bb); avisar(err.message, 'error'); } });
+  };
+}
+function editorArticulo(caja, a) {
+  let imagen = a.imagen || '';
+  caja.innerHTML = `<button class="btn btn-sec btn-peq" type="button" id="volver-blog">← Volver a la lista</button>
+    <h2 style="margin:16px 0 10px">${a.id ? 'Editar artículo' : 'Nuevo artículo'}</h2>
+    <form id="form-art" class="tarjeta form-grid" novalidate>
+      <div class="campo"><label for="art-titulo">Título *</label><input id="art-titulo" maxlength="140" value="${esc(a.titulo || '')}"></div>
+      <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+        <div class="campo"><label for="art-cat">Tema</label><select id="art-cat">${CATEGORIAS_BLOG.map(c => `<option ${c === (a.categoria || 'Danza') ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+        <div class="campo"><label for="art-autor">Autor</label><input id="art-autor" maxlength="80" value="${esc(a.autor || 'Corporación Barakah')}"></div></div>
+      <div class="campo"><label>Imagen de portada</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><img id="art-prev" alt="" style="width:180px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid var(--borde);${imagen ? '' : 'display:none'}" src="${esc(imagen)}">
+          <label class="btn btn-sec btn-peq" style="cursor:pointer">Subir imagen<input type="file" id="art-img" accept="image/jpeg,image/png,image/webp" hidden></label>
+          <button class="btn btn-sec btn-peq" type="button" id="art-quitar" style="${imagen ? '' : 'display:none'}">Quitar</button></div></div>
+      <div class="campo"><label for="art-resumen">Resumen (opcional)</label><textarea id="art-resumen" rows="2" maxlength="300" placeholder="Si lo dejas vacío, se toma el comienzo del artículo.">${esc(a.resumen || '')}</textarea></div>
+      <div class="campo"><label for="art-cont">Contenido *</label><textarea id="art-cont" rows="18" maxlength="60000" style="font-family:ui-monospace,monospace;font-size:.95rem">${esc(a.contenido || '')}</textarea>
+        <p class="mini secundario" style="margin:6px 0 0">Deja una línea en blanco entre párrafos. <b>## Subtítulo</b> · <b>**negrita**</b> · <i>*cursiva*</i> · <b>- </b>lista · <b>&gt; </b>cita · [texto](https://enlace) · ![descripción](https://imagen.jpg)</p></div>
+      <div class="acciones" style="justify-content:flex-start"><button class="btn btn-sec" type="button" data-estado="BORRADOR">Guardar borrador</button><button class="btn" type="button" data-estado="PUBLICADO">${a.estado === 'PUBLICADO' ? 'Guardar y publicar' : 'Publicar'}</button></div>
+    </form>`;
+  $('#volver-blog').addEventListener('click', () => { WEB.editar = undefined; pintarAdmin(); });
+  const ponerImg = url => { imagen = url; $('#art-prev').src = url; $('#art-prev').style.display = url ? '' : 'none'; $('#art-quitar').style.display = url ? '' : 'none'; };
+  $('#art-quitar').addEventListener('click', () => ponerImg(''));
+  $('#art-img').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return; const b = $('#art-img').parentElement; b.style.opacity = .6;
+    try { const dataUrl = await prepararImagen(f, 1600); ponerImg(MODO_DEMO ? dataUrl : await llamarAdmin('subirImagenBlog', {nombre: f.name, tipo: 'image/jpeg', base64: dataUrl.split(',')[1]})); avisar('Imagen lista.', 'ok'); }
+    catch (err) { avisar(err.message, 'error'); } b.style.opacity = 1; e.target.value = '';
+  });
+  $$('[data-estado]', caja).forEach(btn => btn.addEventListener('click', async () => {
+    const art = {id: a.id, titulo: $('#art-titulo').value, categoria: $('#art-cat').value, autor: $('#art-autor').value, resumen: $('#art-resumen').value, contenido: $('#art-cont').value, imagen, estado: btn.dataset.estado};
+    if (art.titulo.trim().length < 5) { avisar('Escribe un título.', 'error'); $('#art-titulo').focus(); return; }
+    if (art.contenido.trim().length < 30) { avisar('El artículo está muy corto.', 'error'); $('#art-cont').focus(); return; }
+    bloquear(btn, 'Guardando…');
+    try { const r = await llamarAdmin('guardarArticulo', {articulo: art}); avisar(r.mensaje + (art.estado === 'PUBLICADO' ? ' ' + r.url : ''), 'ok', 8000); WEB.editar = undefined; pintarAdmin(); }
+    catch (err) { desbloquear(btn); avisar(err.message, 'error', 7000); }
+  }));
+}
+
 async function adminSemillas(caja) {
   const v = await llamarAdmin('inscripciones', {programa: 'SEMILLAS'}), c = v.cuenta || {};
   caja.innerHTML = `${barraFormulario(v, 'SEMILLAS')}<div class="nota" style="margin-bottom:16px">Inscripciones gratuitas del formulario <a href="https://albarakah.com.co/semillas" target="_blank" rel="noopener">albarakah.com.co/semillas</a>. Las hace el acudiente de cada participante. Se guardan en la hoja <b>“Inscripciones Barakah”</b>, pestaña “Semillas”.</div>
