@@ -500,7 +500,7 @@ td .btn{margin:2px}
 .nav-movil{display:none}
 @media(max-width:760px){
   .menu-btn,.nav{display:none!important}
-  .nav-movil{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(36,16,43,.97);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--borde-fuerte);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.35)}
+  .nav-movil{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(36,16,43,.97);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--borde-fuerte);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.35)}
   .nav-movil a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7rem;font-weight:600;color:var(--texto-sec);text-decoration:none;padding:6px 2px;border-radius:12px}
   .nav-movil a[aria-current="page"]{color:var(--color-brillo);background:rgba(254,203,74,.12)}
   .nav-movil svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -570,6 +570,7 @@ td .btn{margin:2px}
       <a href="#/consultar">Mis boletas</a>
       <a href="#/preguntas">Preguntas</a>
       <a href="#/contacto">Contacto</a>
+      <a href="#/admin" class="solo-admin" hidden>Panel</a>
     </nav>
   </div>
 </header>
@@ -582,6 +583,7 @@ td .btn{margin:2px}
   <a href="#/consultar"><svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3z"/><path d="M14 4v12" stroke-dasharray="2 2"/></svg>Mis boletas</a>
   <a href="#/preguntas"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17.5v.01"/></svg>Preguntas</a>
   <a href="#/contacto"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Contacto</a>
+  <a href="#/admin" class="solo-admin" hidden><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Panel</a>
 </nav>
 <div class="avisos" id="avisos" role="status" aria-live="polite"></div>
 
@@ -1056,6 +1058,7 @@ async function enrutar() {
   detenerLector(); detenerLector = () => {};
   limpiarTemporizadores();
   $('#nav').classList.remove('abierta'); $('#menu-btn').setAttribute('aria-expanded', 'false');
+  $$('.solo-admin').forEach(a => { a.hidden = !Sesion.token(); });
   $$('.nav a, .nav-movil a').forEach(a => a.toggleAttribute('aria-current', a.getAttribute('href') === h || (a.getAttribute('href') === '#/' && /^#?\/?$/.test(h))));
   document.title = 'Boletería ' + CONFIG.NOMBRE_CORTO;
   for (const [re, vista] of RUTAS) {
@@ -1900,7 +1903,8 @@ async function adminVentas(caja) {
           ${emitida ? `<button class="btn btn-sec btn-peq" data-acc="ver" data-ref="${esc(o.referencia)}">Ver boletas</button><button class="btn btn-sec btn-peq" data-acc="correo" data-ref="${esc(o.referencia)}">Reenviar correo</button>` : ''}
           ${['PAGADA', 'GRATIS', 'RESERVADA', 'PENDIENTE'].includes(o.estado) ? `<button class="btn btn-sec btn-peq" data-acc="asistentes" data-ref="${esc(o.referencia)}" title="Registrar a la persona que usará cada boleta">${asis.length ? '🎓 Editar asistentes' : '🎓 Datos de asistentes'}</button>` : ''}
           <button class="btn btn-sec btn-peq" data-acc="wa" data-ref="${esc(o.referencia)}" title="Abre el chat con el comprador desde el WhatsApp de este equipo">WhatsApp ${esc(o.telefono)}</button>
-          ${['PAGADA', 'GRATIS', 'RESERVADA'].includes(o.estado) ? `<button class="btn btn-peligro btn-peq" data-acc="anular" data-ref="${esc(o.referencia)}">Anular</button>` : ''}</td></tr>`;
+          ${['PAGADA', 'GRATIS', 'RESERVADA'].includes(o.estado) ? `<button class="btn btn-peligro btn-peq" data-acc="anular" data-ref="${esc(o.referencia)}">Anular</button>` : ''}
+          ${['ANULADA', 'VENCIDA', 'CANCELADA', 'RECHAZADA'].includes(o.estado) ? `<button class="btn btn-peligro btn-peq" data-acc="eliminar" data-ref="${esc(o.referencia)}" title="Borra la compra y sus boletas del panel y de la base de datos">Eliminar</button>` : ''}</td></tr>`;
     }).join('') || `<tr><td colspan="9" class="secundario">${v.ordenes.length ? 'Sin resultados.' : 'Aún no hay compras para este evento.'}</td></tr>`;
     etiquetarTablas(caja);
   };
@@ -1921,6 +1925,7 @@ async function adminVentas(caja) {
     const o = v.ordenes.find(x => x.referencia === b.dataset.ref); if (!o) return;
     if (b.dataset.acc === 'confirmar') return dialogoConfirmar(o);
     if (b.dataset.acc === 'asistentes') return dialogoAsistentes(o);
+    if (b.dataset.acc === 'eliminar') return dialogoEliminarOrden(o);
     if (b.dataset.acc === 'anular') {
       const motivo = prompt(`Motivo de la anulación de ${o.referencia}. Las boletas quedarán inválidas y el cupo vuelve al aforo. Si hubo pago, la devolución se hace por transferencia:`);
       if (motivo === null) return;
@@ -2193,15 +2198,7 @@ async function adminComentarios(caja) {
   caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Testimonios y reseñas que la gente escribe en <a href="https://albarakah.com.co/#testimonios" target="_blank" rel="noopener">albarakah.com.co</a>. Se publican solos (el filtro bloquea groserías, enlaces y robots). Desde aquí respondes, ocultas o eliminas. Se guardan en la hoja <b>“Página web Barakah”</b> de Drive.</div>
     <div class="kpis"><div class="kpi"><small>Sin responder</small><b>${v.sinResponder}</b></div><div class="kpi"><small>Publicados</small><b>${pub.length}</b></div>
       <div class="kpi"><small>Ocultos</small><b>${v.lista.length - pub.length}</b></div><div class="kpi"><small>Promedio reseñas</small><b>${prom}${res.length ? ' ★' : ''}</b></div></div>
-    <details class="tarjeta" style="margin:6px 0 16px" ${a.tieneClave ? '' : 'open'}><summary style="cursor:pointer;font-weight:700">📲 Alerta por WhatsApp de cada comentario nuevo ${a.tieneClave && a.activa ? '<span class="chip chip-ok">Activa</span>' : '<span class="chip chip-aviso">Sin activar</span>'}</summary>
-      <p class="mini secundario" style="margin:10px 0">Siempre te llega un correo a <b>${esc(a.correo || '')}</b>. Para recibir también un WhatsApp (servicio gratuito CallMeBot):</p>
-      <ol class="mini" style="margin:0 0 12px;padding-left:20px;line-height:1.7"><li>Guarda en tus contactos el número de CallMeBot que aparece en <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener">callmebot.com</a>.</li>
-        <li>Desde el WhatsApp que recibirá las alertas, envíale este mensaje: <b>I allow callmebot to send me messages</b></li><li>Te responde con tu clave (<i>apikey</i>). Escríbela aquí con tu celular, guarda y prueba.</li></ol>
-      <form id="form-alerta" class="form-grid" novalidate style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:end">
-        <div class="campo"><label for="al-tel">Celular que recibe</label><input id="al-tel" inputmode="numeric" value="${esc(a.telefono || '')}" placeholder="3001234567"></div>
-        <div class="campo"><label for="al-key">Clave de CallMeBot</label><input id="al-key" type="password" autocomplete="off" placeholder="${a.tieneClave ? '•••••• (guardada)' : 'apikey'}"></div>
-        <label class="check"><input type="checkbox" id="al-activa" ${a.activa ? 'checked' : ''}><span>Alerta activa</span></label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-peq" type="submit">Guardar</button><button class="btn btn-sec btn-peq" type="button" id="al-probar">Enviar prueba</button></div></form></details>
+    <div class="tarjeta" style="margin:6px 0 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between"><p class="mini" style="margin:0">🔔 Cada comentario nuevo te llega por <b>Telegram</b> y al correo <b>${esc(a.correo || '')}</b>.</p><button class="btn btn-sec btn-peq" type="button" id="al-probar">Enviar prueba</button></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:end;margin:6px 0 12px">
       <div class="pestanas" role="group" aria-label="Filtrar comentarios" style="margin:0">${[['PENDIENTES', 'Sin responder'], ['TODOS', 'Todos'], ['TESTIMONIO', 'Testimonios'], ['RESENA', 'Reseñas'], ['OCULTO', 'Ocultos']].map(([k, t]) => `<button type="button" data-filtro="${k}" aria-selected="${WEB.filtro === k}">${t}</button>`).join('')}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" id="act-com">Actualizar</button><button class="btn btn-peq" type="button" id="xls-com">Descargar (Excel)</button></div></div>
@@ -2227,11 +2224,6 @@ async function adminComentarios(caja) {
   $('#act-com').addEventListener('click', pintarAdmin);
   $('#xls-com').addEventListener('click', () => descargarExcel('Comentarios pagina web.xlsx', {Comentarios: [['Código', 'Fecha', 'Tipo', 'Estado', 'Nombre', 'Relación', 'Estrellas', 'Comentario', 'Correo', 'Respuesta', 'Respondido'],
     ...v.lista.map(x => [x.id, fechaHora(x.creado), x.tipo === 'RESENA' ? 'Reseña' : 'Testimonio', x.estado === 'OCULTO' ? 'Oculto' : 'Publicado', x.nombre, x.relacion, x.estrellas, x.texto, x.email, x.respuesta, x.respondido ? fechaHora(x.respondido) : ''])]}));
-  $('#form-alerta').addEventListener('submit', async e => {
-    e.preventDefault(); const b = $('button[type=submit]', e.target); bloquear(b, 'Guardando…');
-    const d = {telefono: $('#al-tel').value, activa: $('#al-activa').checked}; if ($('#al-key').value.trim()) d.apikey = $('#al-key').value.trim();
-    try { await llamarAdmin('alertas', d); avisar('Alerta guardada.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
-  });
   $('#al-probar').addEventListener('click', async e => { const b = e.currentTarget; bloquear(b, 'Enviando…'); try { const r = await llamarAdmin('probarAlerta'); avisar(r.mensaje, 'ok'); } catch (err) { avisar(err.message, 'error', 8000); } desbloquear(b); });
   caja.onclick = async e => {
     const b = e.target.closest('[data-acc]'); if (!b) return;
@@ -2242,6 +2234,15 @@ async function adminComentarios(caja) {
     try { await llamarAdmin('estadoComentario', {id: x.id, estado: x.estado === 'OCULTO' ? 'PUBLICADO' : 'OCULTO'}); avisar(x.estado === 'OCULTO' ? 'Comentario visible otra vez en la página.' : 'Comentario oculto: ya no se ve en la página.', 'ok'); pintarAdmin(); }
     catch (err) { desbloquear(b); avisar(err.message, 'error'); }
   };
+}
+function dialogoEliminarOrden(o) {
+  const m = abrirModal(`<h2>Eliminar compra ${esc(o.referencia)}</h2><p>La compra de <b>${esc(o.nombre)}</b> (${esc((ETIQUETA_ESTADO[o.estado] || [o.estado])[0])}) y sus boletas se borran <b>definitivamente</b> del panel y de la base de datos. No se puede deshacer.</p>
+    <p class="nota" style="margin:0 0 14px">Úsalo para compras de prueba o anuladas que no necesitas conservar.</p>
+    <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="button" id="elo-ok" style="border-width:2px">Sí, eliminar</button></div>`);
+  $('#elo-ok', m.caja).addEventListener('click', async e => {
+    const b = e.currentTarget; bloquear(b, 'Eliminando…');
+    try { await llamarAdmin('eliminarOrden', {referencia: o.referencia}); m.cerrar(); avisar('Compra eliminada.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); }
+  });
 }
 function dialogoResponder(x) {
   const m = abrirModal(`<h2>${x.respuesta ? 'Editar respuesta' : 'Responder'} a ${esc(x.nombre)}</h2>
