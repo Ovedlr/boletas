@@ -1795,7 +1795,8 @@ async function descargarPDF(o, btn, imprimir) {
 const SECCIONES_ADMIN = {
   eventos: {titulo: 'Boletería y eventos', pestanas: [['eventos', 'Eventos: flyer, información y aforo'], ['ventas', 'Ventas y pagos'], ['ingreso', 'Control de ingreso'], ['contactos', 'Contactos'], ['mensajes', 'Mensajes'], ['datos', 'Base de datos (Excel)']]},
   inscripciones: {titulo: 'Inscripciones a clases', pestanas: [['inscripciones', 'Clases regulares'], ['semillas', 'Semillas en Movimiento']]},
-  web: {titulo: 'Página web', pestanas: [['comentarios', 'Comentarios y reseñas'], ['blog', 'Blog']]}
+  web: {titulo: 'Página web', pestanas: [['comentarios', 'Comentarios y reseñas'], ['blog', 'Blog']]},
+  emisora: {titulo: 'Barakah Radio', pestanas: [['emisora', 'Panel de la emisora'], ['transmitir', 'Transmitir en vivo (RadioBOSS)']]}
 };
 const seccionGuardada = () => { try { const k = sessionStorage.getItem('barakah_seccion'); return SECCIONES_ADMIN[k] ? k : 'eventos'; } catch (e) { return 'eventos'; } };
 let ADMIN = {seccion: seccionGuardada(), pestana: SECCIONES_ADMIN[seccionGuardada()].pestanas[0][0], eventos: [], eventoSel: '', editar: null};
@@ -1805,15 +1806,15 @@ async function vistaAdmin(main) {
   main.innerHTML = `<div class="contenedor">
     <div class="admin-cab"><div><h1 style="font-size:clamp(1.6rem,4vw,2.2rem);margin:0">Panel de administración</h1>
         <span class="chip ${MODO_DEMO ? 'chip-aviso' : 'chip-ok'}" style="margin-top:6px">${MODO_DEMO ? '⚠ Modo demostración: no se envían correos ni se guarda en Drive' : '✓ Conectado al servidor y a Drive'}</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : ADMIN.seccion === 'web' ? 'Ver la página web' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : ADMIN.seccion === 'web' ? 'Ver la página web' : ADMIN.seccion === 'emisora' ? 'Escuchar la radio' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
     <div class="secciones-admin" role="group" aria-label="Área del panel">
-      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${{eventos: '🎟️', inscripciones: '💃', web: '🌐'}[k]}</span> ${esc(sec.titulo)}</button>`).join('')}
+      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${{eventos: '🎟️', inscripciones: '💃', web: '🌐', emisora: '📻'}[k]}</span> ${esc(sec.titulo)}</button>`).join('')}
     </div>
     <div class="pestanas" role="tablist" aria-label="Pestañas de ${esc(SECCIONES_ADMIN[ADMIN.seccion].titulo)}">
       ${SECCIONES_ADMIN[ADMIN.seccion].pestanas.map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
     </div><section id="admin-cuerpo" role="tabpanel"></section></div>`;
   $('#salir').addEventListener('click', () => { Sesion.salir(); enrutar(); });
-  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : ADMIN.seccion === 'web' ? window.open('https://albarakah.com.co/', '_blank', 'noopener') : abrirBaseDatos());
+  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : ADMIN.seccion === 'web' ? window.open('https://albarakah.com.co/', '_blank', 'noopener') : ADMIN.seccion === 'emisora' ? window.open(RADIO.pagina, '_blank', 'noopener') : abrirBaseDatos());
   $$('[data-seccion]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.seccion; if (k === ADMIN.seccion) return;
     ADMIN.seccion = k; ADMIN.pestana = SECCIONES_ADMIN[k].pestanas[0][0]; INS.filtro = ''; INS.estado = '';
@@ -1854,6 +1855,7 @@ async function pintarAdmin() {
   try {
     if (ADMIN.seccion === 'inscripciones') { await ({inscripciones: adminInscripciones, semillas: adminSemillas}[ADMIN.pestana] || adminInscripciones)(caja); return; }
     if (ADMIN.seccion === 'web') { await ({comentarios: adminComentarios, blog: adminBlog}[ADMIN.pestana] || adminComentarios)(caja); return; }
+    if (ADMIN.seccion === 'emisora') { await ({emisora: adminEmisora, transmitir: adminTransmitir}[ADMIN.pestana] || adminEmisora)(caja); return; }
     ADMIN.eventos = (await llamarAdmin('eventos')).sort((a, b) => momentoEvento(b) - momentoEvento(a));
     if (!ADMIN.eventoSel || !ADMIN.eventos.find(e => e.id === ADMIN.eventoSel)) {
       const prox = ADMIN.eventos.filter(e => !eventoPasado(e)).sort((a, b) => momentoEvento(a) - momentoEvento(b))[0];
@@ -2265,6 +2267,66 @@ function dialogoEliminarComentario(x) {
     const b = e.currentTarget; bloquear(b, 'Eliminando…');
     try { await llamarAdmin('eliminarComentario', {id: x.id}); m.cerrar(); avisar('Comentario eliminado.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(b); avisar(err.message, 'error'); }
   });
+}
+
+/* ---------- Barakah Radio: administración de la emisora ----------
+   La música, las listas y la transmisión viven en AzuraCast (azura.albarakah.com.co). Este panel reúne los accesos
+   y muestra el estado de la señal. No guarda claves: AzuraCast pide su propio ingreso. */
+const RADIO = {
+  pagina: 'https://radio.albarakah.com.co',
+  panel: 'https://azura.albarakah.com.co',
+  estacion: 1, // número de la estación en AzuraCast (la primera que se creó)
+  estado: 'https://azura.albarakah.com.co/api/nowplaying/barakah_radio',
+  servidor: 'azura.albarakah.com.co', puerto: '8005'
+};
+const urlRadio = ruta => RADIO.panel + '/station/' + RADIO.estacion + ruta;
+async function adminEmisora(caja) {
+  const acc = [
+    ['🎵', 'Música y carpetas', 'Subir canciones, cuñas de RESPIRA y los IDs de Sara. Editar título y artista.', urlRadio('/files')],
+    ['🗂️', 'Listas de reproducción', 'Peso de cada género, frecuencia de cuñas e IDs, y horarios de los programas.', urlRadio('/playlists')],
+    ['🎙️', 'Transmisión en vivo', 'Crear o cambiar el usuario DJ y ver quién está al aire.', urlRadio('/streamers')],
+    ['📊', 'Informes y oyentes', 'Oyentes, canciones más sonadas y reporte de canciones para la OSA.', urlRadio('/reports/overview')],
+    ['⚙️', 'Perfil de la estación', 'Reiniciar la transmisión, saltar canción y ver el estado de los servicios.', urlRadio('')],
+    ['🔧', 'Administración del servidor', 'Usuarios, copias de seguridad, actualizaciones y certificado HTTPS.', RADIO.panel + '/admin']
+  ];
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Estado de la señal de <a href="${RADIO.pagina}" target="_blank" rel="noopener">Barakah Radio</a>. La música y las listas se administran en AzuraCast; allí te pedirá su propio ingreso.</div>
+    <div class="kpis" id="radio-estado"><div class="kpi"><small>Estado</small><b>Consultando…</b></div></div>
+    <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-bottom:18px">
+      ${acc.map(([ico, t, d, u]) => `<a class="tarjeta" href="${esc(u)}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:1.6rem" aria-hidden="true">${ico}</div><h2 style="font-size:1.1rem;margin:6px 0">${esc(t)}</h2><p class="mini secundario" style="margin:0">${esc(d)}</p></a>`).join('')}
+    </div>
+    <div class="tarjeta"><h2 style="font-size:1.1rem;margin-bottom:8px">Pendientes de la emisora</h2>
+      <ul class="mini" style="margin:0;padding-left:18px;display:grid;gap:6px">
+        <li>Diciembre: trámites en Cámara de Comercio y en la OSA (licencia de comunicación pública). El historial de canciones de AzuraCast sirve como reporte.</li>
+        <li>Mientras tanto, dar prioridad a música propia o con permiso.</li>
+        <li>Subir más Bollywood y ponerles título a las cuñas y a los IDs.</li></ul></div>`;
+  const caja2 = $('#radio-estado');
+  try {
+    const j = await (await fetch(RADIO.estado + '?t=' + Date.now(), {cache: 'no-store'})).json();
+    const c = j.now_playing && j.now_playing.song ? [j.now_playing.song.title, j.now_playing.song.artist].filter(Boolean).join(' · ') : '—';
+    const vivo = j.live && j.live.is_live;
+    caja2.innerHTML = `<div class="kpi"><small>Estado</small><b>${j.is_online === false ? '⚠ Fuera del aire' : '✓ Al aire'}</b></div>
+      <div class="kpi"><small>Modo</small><b>${vivo ? 'En vivo · ' + esc(j.live.streamer_name || 'DJ') : 'AutoDJ'}</b></div>
+      <div class="kpi"><small>Oyentes ahora</small><b>${j.listeners ? j.listeners.current : 0}</b></div>
+      <div class="kpi" style="grid-column:1/-1"><small>Suena ahora</small><b style="font-size:1rem">${esc(c)}</b></div>`;
+  } catch (e) { caja2.innerHTML = '<div class="nota">No se pudo consultar el estado de la señal. Revisa que el servidor de la emisora esté encendido.</div>'; }
+}
+function adminTransmitir(caja) {
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Para hablar en vivo (lunes «La clase de ritmo» y viernes «Viernes de fiesta») conecta RadioBOSS a la emisora. La contraseña no se guarda aquí: es la del usuario DJ creado en AzuraCast.</div>
+    <div class="tarjeta" style="margin-bottom:18px"><h2 style="font-size:1.1rem;margin-bottom:10px">Datos de conexión para RadioBOSS</h2>
+      <div class="tabla-marco"><table><tbody>
+        <tr><th>Tipo de servidor</th><td>Icecast</td></tr>
+        <tr><th>Servidor</th><td><b>${esc(RADIO.servidor)}</b></td></tr>
+        <tr><th>Puerto</th><td><b>${esc(RADIO.puerto)}</b> <span class="mini secundario">(confírmalo en «Transmisión en vivo» de AzuraCast)</span></td></tr>
+        <tr><th>Punto de montaje</th><td>/ (o vacío)</td></tr>
+        <tr><th>Usuario</th><td>El usuario DJ de AzuraCast</td></tr>
+        <tr><th>Formato</th><td>MP3 · 128 kbps · 44100 Hz · estéreo</td></tr></tbody></table></div></div>
+    <ol class="mini" style="margin:0 0 16px;padding-left:20px;display:grid;gap:6px">
+      <li>En RadioBOSS: Configuración → Transmisión → Agregar y llena los datos.</li>
+      <li>Pulsa «Iniciar transmisión». La música automática se pausa y la página muestra «En vivo».</li>
+      <li>Al detener la transmisión, la radio vuelve sola al AutoDJ.</li></ol>
+    <a class="btn btn-dorado" href="${urlRadio('/streamers')}" target="_blank" rel="noopener">Administrar usuarios DJ en AzuraCast</a>`;
+  etiquetarTablas(caja);
 }
 
 /* ---------- Página web: blog ---------- */
