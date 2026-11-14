@@ -2299,7 +2299,8 @@ async function adminEmisora(caja) {
       <ul class="mini" style="margin:0;padding-left:18px;display:grid;gap:6px">
         <li>Diciembre: trámites en Cámara de Comercio y en la OSA (licencia de comunicación pública). El historial de canciones de AzuraCast sirve como reporte.</li>
         <li>Mientras tanto, dar prioridad a música propia o con permiso.</li>
-        <li>Subir más Bollywood y ponerles título a las cuñas y a los IDs.</li></ul></div>`;
+        <li>Subir más Bollywood y ponerles título a las cuñas y a los IDs.</li></ul></div>
+    <div id="radio-oyentes" style="margin-top:18px"></div>`;
   const caja2 = $('#radio-estado');
   try {
     const j = await (await fetch(RADIO.estado + '?t=' + Date.now(), {cache: 'no-store'})).json();
@@ -2310,6 +2311,30 @@ async function adminEmisora(caja) {
       <div class="kpi"><small>Oyentes ahora</small><b>${j.listeners ? j.listeners.current : 0}</b></div>
       <div class="kpi" style="grid-column:1/-1"><small>Suena ahora</small><b style="font-size:1rem">${esc(c)}</b></div>`;
   } catch (e) { caja2.innerHTML = '<div class="nota">No se pudo consultar el estado de la señal. Revisa que el servidor de la emisora esté encendido.</div>'; }
+  await pintarOyentes();
+}
+/* Oyentes por país y ciudad. Los datos vienen del servidor de boletería (acción admin radio_oyentes),
+   que lee AzuraCast con la clave guardada en Propiedades del script. Aquí no hay ninguna clave. */
+async function pintarOyentes() {
+  const caja = $('#radio-oyentes'); if (!caja) return;
+  caja.innerHTML = '<div class="tarjeta"><h2 style="font-size:1.1rem;margin-bottom:8px">Oyentes por zona</h2><p class="mini secundario" style="margin:0">Consultando AzuraCast…</p></div>';
+  const barras = (titulo, filas) => {
+    const max = Math.max(1, ...filas.map(f => f.total));
+    return `<div class="tarjeta"><h3 style="font-size:1rem;margin-bottom:10px">${esc(titulo)}</h3>${filas.length
+      ? filas.map(f => `<div style="display:grid;grid-template-columns:140px 1fr 40px;gap:10px;align-items:center;margin:6px 0">
+          <span class="mini">${esc(f.nombre)}</span>
+          <span style="display:block;height:10px;border-radius:6px;background:var(--color-principal);width:${Math.round(f.total / max * 100)}%;min-width:4px"></span>
+          <b class="mini" style="text-align:right">${f.total}</b></div>`).join('')
+      : '<p class="mini secundario" style="margin:0">Sin oyentes en este momento.</p>'}</div>`;
+  };
+  try {
+    const d = await llamarAdmin('radio_oyentes');
+    caja.innerHTML = `<div class="kpis"><div class="kpi"><small>Oyentes ahora</small><b>${d.ahora}</b></div></div>
+      <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${barras('Por país', d.paises)}${barras('Por ciudad', d.ciudades)}</div>
+      <p class="mini secundario" style="margin:10px 0 0">Ubicación aproximada según la base GeoLite de AzuraCast. Actualizado ${esc(new Date(d.hora).toLocaleTimeString('es-CO'))}.</p>`;
+  } catch (err) {
+    caja.innerHTML = `<div class="nota">No se pudieron cargar los oyentes: ${esc(err.message || 'error desconocido')}. Revisa que la clave AZURA_API_KEY esté guardada en el script y que GeoLite esté instalado en AzuraCast.</div>`;
+  }
 }
 function adminTransmitir(caja) {
   caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Para hablar en vivo (lunes «La clase de ritmo» y viernes «Viernes de fiesta») conecta RadioBOSS a la emisora. La contraseña no se guarda aquí: es la del usuario DJ creado en AzuraCast.</div>
