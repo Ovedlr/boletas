@@ -2211,14 +2211,21 @@ async function cuesSubirArchivo(archivo, avance) {
     x.send(archivo);
   });
 }
-async function cuesDescargar(fileId, mime, avance) {
-  const partes = []; let desde = 0, total = Infinity;
-  while (desde < total) {
-    const t = await llamarAdmin('cues_leerTrozo', {fileId, desde});
-    if (!t.largo) throw new Error('El video llegó incompleto. Intenta de nuevo.');
-    const bin = atob(t.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    partes.push(u8); total = t.total; desde += t.largo; avance(Math.min(100, Math.round(desde / total * 100)));
+async function cuesTrozo(fileId, desde) {
+  for (let intento = 0; ; intento++) {
+    try {
+      const t = await llamarAdmin('cues_leerTrozo', {fileId, desde});
+      if (!t.largo) throw new Error('El video llegó incompleto. Intenta de nuevo.');
+      const bin = atob(t.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return {u8, total: t.total, largo: t.largo};
+    } catch (e) { if (intento >= 2 || e.codigo === 'SESION' || e.codigo === 'PERMISO') throw e; await new Promise(r => setTimeout(r, 700 * (intento + 1))); }
   }
+}
+async function cuesDescargar(fileId, mime, avance) {
+  const primero = await cuesTrozo(fileId, 0), paso = primero.largo, total = primero.total, n = Math.ceil(total / paso);
+  const partes = new Array(n); partes[0] = primero.u8; let bajado = primero.largo, sig = 1; avance(Math.min(100, Math.round(bajado / total * 100)));
+  const obrero = async () => { while (sig < n) { const i = sig++, t = await cuesTrozo(fileId, i * paso); partes[i] = t.u8; bajado += t.largo; avance(Math.min(100, Math.round(bajado / total * 100))); } };
+  await Promise.all(Array.from({length: Math.min(4, n - 1)}, obrero));
   return new Blob(partes, {type: mime || 'video/mp4'});
 }
 function cuesVerVideo(titulo, fileId, mime) {
@@ -2234,7 +2241,7 @@ async function adminCuesVideos(caja) {
   caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Aquí publicas los <b>videos de estudio</b>. Los estudiantes entran en <a href="https://albarakah.com.co/estudio/" target="_blank" rel="noopener">albarakah.com.co/estudio</a>, ven la lista de los videos de su curso, eligen uno y practican con la cámara. Ellos <b>no</b> suben videos de estudio. Máximo ${CUES.maxMB} MB por video (ideal: 30 a 90 segundos, de frente, cuerpo entero y buena luz).</div>
     <form class="tarjeta form-grid" id="cv-form" novalidate>
       <h3 style="margin:0">Publicar un video de estudio</h3>
-      <div class="campo"><label for="cv-archivo">Video</label><input id="cv-archivo" type="file" accept="video/*"></div>
+      <div class="campo"><label for="cv-archivo">Video</label><input id="cv-archivo" type="file" accept="video/*"><small class="mini secundario" id="cv-peso"></small></div>
       <div class="campo"><label for="cv-titulo">Título</label><input id="cv-titulo" maxlength="120" placeholder="Ej.: Frase 1 · brazos y cadera"></div>
       <div class="campo"><label for="cv-hab">Habilidad que trabaja</label><select id="cv-hab">${Object.entries(CUES.habilidades).map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></div>
       <div class="campo"><label for="cv-nivel">Nivel</label><select id="cv-nivel"><option>Básico</option><option>Intermedio</option><option>Avanzado</option></select></div>
@@ -2246,7 +2253,7 @@ async function adminCuesVideos(caja) {
   $('#cv-lista', caja).innerHTML = lista.map(v => `<article class="tarjeta" style="margin:0;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center">
       <div><b>${esc(v.titulo)}</b><div class="mini secundario">${esc([CUES.habilidades[v.habilidad], v.nivel, v.curso ? 'Curso: ' + v.curso : 'Todos los cursos', cuesMB(v.tamano), fechaHora(v.creado)].filter(Boolean).join(' · '))}</div>${v.descripcion ? `<div class="mini">${esc(v.descripcion)}</div>` : ''}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" data-ver="${esc(v.id)}">▶ Ver</button><button class="btn btn-peligro btn-peq" type="button" data-arch="${esc(v.id)}">Archivar</button></div></article>`).join('') || '<div class="nota">Aún no has publicado videos de estudio.</div>';
-  $('#cv-archivo', caja).addEventListener('change', e => { const f = e.target.files[0]; if (f && !$('#cv-titulo', caja).value) $('#cv-titulo', caja).value = f.name.replace(/\.[^.]+$/, ''); });
+  $('#cv-archivo', caja).addEventListener('change', e => { const f = e.target.files[0]; if (f && !$('#cv-titulo', caja).value) $('#cv-titulo', caja).value = f.name.replace(/\.[^.]+$/, ''); const av = $('#cv-peso', caja); if (!f) { av.textContent = ''; return; } av.textContent = f.size > 40 * 1048576 ? `Este video pesa ${cuesMB(f.size)}. Los estudiantes lo descargan en cada práctica: para que cargue rápido conviene que pese menos de 40 MB (exporta a 720p, unos 2 a 3 Mbps).` : `Peso: ${cuesMB(f.size)}. Está bien para descargar rápido.`; });
   $('#cv-form', caja).addEventListener('submit', async e => {
     e.preventDefault(); const f = $('#cv-archivo', caja).files[0], b = $('button[type=submit]', e.target);
     if (!f) return avisar('Elige primero el video.', 'error');
