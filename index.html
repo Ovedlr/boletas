@@ -1796,7 +1796,8 @@ const SECCIONES_ADMIN = {
   eventos: {titulo: 'Boletería y eventos', pestanas: [['eventos', 'Eventos: flyer, información y aforo'], ['ventas', 'Ventas y pagos'], ['ingreso', 'Control de ingreso'], ['contactos', 'Contactos'], ['mensajes', 'Mensajes'], ['datos', 'Base de datos (Excel)']]},
   inscripciones: {titulo: 'Inscripciones a clases', pestanas: [['inscripciones', 'Clases regulares'], ['semillas', 'Semillas en Movimiento']]},
   web: {titulo: 'Página web', pestanas: [['comentarios', 'Comentarios y reseñas'], ['blog', 'Blog']]},
-  emisora: {titulo: 'Barakah Radio', pestanas: [['emisora', 'Panel de la emisora'], ['transmitir', 'Transmitir en vivo (RadioBOSS)']]}
+  emisora: {titulo: 'Barakah Radio', pestanas: [['emisora', 'Panel de la emisora'], ['transmitir', 'Transmitir en vivo (RadioBOSS)']]},
+  cues: {titulo: 'Cues · Estudio', pestanas: [['cuesvideos', 'Videos de estudio'], ['cuesestudiantes', 'Estudiantes'], ['cuesrevision', 'Revisión de entregas']]}
 };
 const seccionGuardada = () => { try { const k = sessionStorage.getItem('barakah_seccion'); return SECCIONES_ADMIN[k] ? k : 'eventos'; } catch (e) { return 'eventos'; } };
 let ADMIN = {seccion: seccionGuardada(), pestana: SECCIONES_ADMIN[seccionGuardada()].pestanas[0][0], eventos: [], eventoSel: '', editar: null};
@@ -1806,15 +1807,15 @@ async function vistaAdmin(main) {
   main.innerHTML = `<div class="contenedor">
     <div class="admin-cab"><div><h1 style="font-size:clamp(1.6rem,4vw,2.2rem);margin:0">Panel de administración</h1>
         <span class="chip ${MODO_DEMO ? 'chip-aviso' : 'chip-ok'}" style="margin-top:6px">${MODO_DEMO ? '⚠ Modo demostración: no se envían correos ni se guarda en Drive' : '✓ Conectado al servidor y a Drive'}</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : ADMIN.seccion === 'web' ? 'Ver la página web' : ADMIN.seccion === 'emisora' ? 'Escuchar la radio' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : ADMIN.seccion === 'web' ? 'Ver la página web' : ADMIN.seccion === 'emisora' ? 'Escuchar la radio' : ADMIN.seccion === 'cues' ? 'Abrir la página del estudiante' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
     <div class="secciones-admin" role="group" aria-label="Área del panel">
-      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${{eventos: '🎟️', inscripciones: '💃', web: '🌐', emisora: '📻'}[k]}</span> ${esc(sec.titulo)}</button>`).join('')}
+      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${{eventos: '🎟️', inscripciones: '💃', web: '🌐', emisora: '📻', cues: '🎬'}[k]}</span> ${esc(sec.titulo)}</button>`).join('')}
     </div>
     <div class="pestanas" role="tablist" aria-label="Pestañas de ${esc(SECCIONES_ADMIN[ADMIN.seccion].titulo)}">
       ${SECCIONES_ADMIN[ADMIN.seccion].pestanas.map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
     </div><section id="admin-cuerpo" role="tabpanel"></section></div>`;
   $('#salir').addEventListener('click', () => { Sesion.salir(); enrutar(); });
-  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : ADMIN.seccion === 'web' ? window.open('https://albarakah.com.co/', '_blank', 'noopener') : ADMIN.seccion === 'emisora' ? window.open(RADIO.pagina, '_blank', 'noopener') : abrirBaseDatos());
+  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : ADMIN.seccion === 'web' ? window.open('https://albarakah.com.co/', '_blank', 'noopener') : ADMIN.seccion === 'emisora' ? window.open(RADIO.pagina, '_blank', 'noopener') : ADMIN.seccion === 'cues' ? window.open('https://albarakah.com.co/estudio/', '_blank', 'noopener') : abrirBaseDatos());
   $$('[data-seccion]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.seccion; if (k === ADMIN.seccion) return;
     ADMIN.seccion = k; ADMIN.pestana = SECCIONES_ADMIN[k].pestanas[0][0]; INS.filtro = ''; INS.estado = '';
@@ -1855,6 +1856,7 @@ async function pintarAdmin() {
   try {
     if (ADMIN.seccion === 'inscripciones') { await ({inscripciones: adminInscripciones, semillas: adminSemillas}[ADMIN.pestana] || adminInscripciones)(caja); return; }
     if (ADMIN.seccion === 'web') { await ({comentarios: adminComentarios, blog: adminBlog}[ADMIN.pestana] || adminComentarios)(caja); return; }
+    if (ADMIN.seccion === 'cues') { await ({cuesvideos: adminCuesVideos, cuesestudiantes: adminCuesEstudiantes, cuesrevision: adminCuesRevision}[ADMIN.pestana] || adminCuesVideos)(caja); return; }
     if (ADMIN.seccion === 'emisora') { await ({emisora: adminEmisora, transmitir: adminTransmitir}[ADMIN.pestana] || adminEmisora)(caja); return; }
     ADMIN.eventos = (await llamarAdmin('eventos')).sort((a, b) => momentoEvento(b) - momentoEvento(a));
     if (!ADMIN.eventoSel || !ADMIN.eventos.find(e => e.id === ADMIN.eventoSel)) {
@@ -2190,6 +2192,140 @@ function dialogoReiniciarIns(programa, total) {
     catch (err) { desbloquear(b); avisar(err.message, 'error', 7000); $('#ri-clave', m.caja).select(); }
   });
 }
+/* ---------- Cues · Estudio (Cuerpo en Sincronía para estudiantes de Barakah) ----------
+   La profesora o el administrador publican aquí los videos de estudio, crean los usuarios de los estudiantes y revisan sus grabaciones.
+   Los estudiantes entran en https://albarakah.com.co/estudio/ . Datos: libro "Cues Barakah" y carpeta "Cues Barakah (videos)" en Drive.
+   Acciones del servidor: admin_cues_* (archivo servidor/Cues.gs del repo barakahco). */
+const CUES = {estado: 'PENDIENTE', habilidades: {precision: 'Precisión', ritmo: 'Ritmo', sincronia: 'Sincronía', agilidad: 'Agilidad', memoria: 'Memoria', disociacion: 'Disociación corporal', retencion: 'Retención rítmica'}, maxMB: 250};
+const cuesMB = n => (Number(n || 0) / 1048576).toFixed(1).replace('.', ',') + ' MB';
+const cuesChip = e => e === 'APROBADO' ? '<span class="chip chip-ok">Aprobada</span>' : e === 'REPETIR' ? '<span class="chip chip-mal">Para repetir</span>' : '<span class="chip chip-aviso">Pendiente de revisión</span>';
+function cuesBarra(cont) { cont.innerHTML = '<div style="height:10px;border-radius:6px;background:rgba(255,255,255,.14);overflow:hidden;margin:8px 0"><div data-barra style="height:100%;width:0;background:linear-gradient(90deg,#faba2f,#fecb4a);transition:width .2s"></div></div><span class="mini secundario" data-pct>Preparando…</span>'; return p => { const b = $('[data-barra]', cont), t = $('[data-pct]', cont); if (b) b.style.width = p + '%'; if (t) t.textContent = 'Subiendo… ' + p + ' %'; }; }
+async function cuesSubirArchivo(archivo, avance) {
+  const mime = (archivo.type || 'video/mp4').split(';')[0];
+  const {sesion} = await llamarAdmin('cues_iniciarSubida', {tipo: 'referencia', nombre: archivo.name, mime, tamano: archivo.size, origen: location.origin});
+  return new Promise((ok, mal) => {
+    const x = new XMLHttpRequest(); x.open('PUT', sesion); x.setRequestHeader('Content-Type', mime);
+    x.upload.onprogress = e => { if (e.lengthComputable) avance(Math.round(e.loaded / e.total * 100)); };
+    x.onload = () => { if (x.status >= 200 && x.status < 300) { try { ok(JSON.parse(x.responseText).id); } catch (e) { mal(new Error('La carga terminó, pero no se confirmó el archivo.')); } } else mal(new Error('No se pudo subir el video (' + x.status + ').')); };
+    x.onerror = () => mal(new Error('Se cortó la conexión al subir el video. Intenta de nuevo con mejor señal.'));
+    x.send(archivo);
+  });
+}
+async function cuesDescargar(fileId, mime, avance) {
+  const partes = []; let desde = 0, total = Infinity;
+  while (desde < total) {
+    const t = await llamarAdmin('cues_leerTrozo', {fileId, desde});
+    if (!t.largo) throw new Error('El video llegó incompleto. Intenta de nuevo.');
+    const bin = atob(t.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    partes.push(u8); total = t.total; desde += t.largo; avance(Math.min(100, Math.round(desde / total * 100)));
+  }
+  return new Blob(partes, {type: mime || 'video/mp4'});
+}
+function cuesVerVideo(titulo, fileId, mime) {
+  let url = '';
+  const m = abrirModal(`<h2>${esc(titulo)}</h2><div id="cv-est"></div><video id="cv-video" controls playsinline style="display:none;width:100%;max-height:65vh;border-radius:12px;background:#000"></video><div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cerrar</button></div>`, {ancho: true, alCerrar: () => { if (url) URL.revokeObjectURL(url); }});
+  const est = $('#cv-est', m.caja), pct = cuesBarra(est);
+  cuesDescargar(fileId, mime, p => { pct(p); $('[data-pct]', est).textContent = 'Descargando… ' + p + ' %'; }).then(b => { url = URL.createObjectURL(b); const v = $('#cv-video', m.caja); v.src = url; v.style.display = 'block'; est.innerHTML = ''; v.play().catch(() => {}); }).catch(e => { est.innerHTML = `<div class="nota">${esc(e.message)}</div>`; });
+}
+async function cuesCursos() { try { return [...new Set((await llamarAdmin('cues_usuarios')).map(u => u.curso).filter(Boolean))]; } catch (e) { return []; } }
+
+async function adminCuesVideos(caja) {
+  const [lista, cursos] = await Promise.all([llamarAdmin('cues_biblioteca'), cuesCursos()]);
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Aquí publicas los <b>videos de estudio</b>. Los estudiantes entran en <a href="https://albarakah.com.co/estudio/" target="_blank" rel="noopener">albarakah.com.co/estudio</a>, ven la lista de los videos de su curso, eligen uno y practican con la cámara. Ellos <b>no</b> suben videos de estudio. Máximo ${CUES.maxMB} MB por video (ideal: 30 a 90 segundos, de frente, cuerpo entero y buena luz).</div>
+    <form class="tarjeta form-grid" id="cv-form" novalidate>
+      <h3 style="margin:0">Publicar un video de estudio</h3>
+      <div class="campo"><label for="cv-archivo">Video</label><input id="cv-archivo" type="file" accept="video/*"></div>
+      <div class="campo"><label for="cv-titulo">Título</label><input id="cv-titulo" maxlength="120" placeholder="Ej.: Frase 1 · brazos y cadera"></div>
+      <div class="campo"><label for="cv-hab">Habilidad que trabaja</label><select id="cv-hab">${Object.entries(CUES.habilidades).map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></div>
+      <div class="campo"><label for="cv-nivel">Nivel</label><select id="cv-nivel"><option>Básico</option><option>Intermedio</option><option>Avanzado</option></select></div>
+      <div class="campo"><label for="cv-curso">Curso o grupo que lo verá (vacío = todos los estudiantes)</label><input id="cv-curso" list="cv-cursos" maxlength="60" placeholder="Ej.: Básico martes"><datalist id="cv-cursos">${cursos.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <div class="campo"><label for="cv-desc">Qué debe lograr el estudiante (opcional)</label><textarea id="cv-desc" rows="2" maxlength="500"></textarea></div>
+      <div id="cv-prog"></div>
+      <button class="btn btn-dorado" type="submit">Publicar para los estudiantes</button></form>
+    <h3 style="margin:22px 0 10px">Videos publicados (${lista.length})</h3><div id="cv-lista" style="display:grid;gap:12px"></div>`;
+  $('#cv-lista', caja).innerHTML = lista.map(v => `<article class="tarjeta" style="margin:0;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center">
+      <div><b>${esc(v.titulo)}</b><div class="mini secundario">${esc([CUES.habilidades[v.habilidad], v.nivel, v.curso ? 'Curso: ' + v.curso : 'Todos los cursos', cuesMB(v.tamano), fechaHora(v.creado)].filter(Boolean).join(' · '))}</div>${v.descripcion ? `<div class="mini">${esc(v.descripcion)}</div>` : ''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" data-ver="${esc(v.id)}">▶ Ver</button><button class="btn btn-peligro btn-peq" type="button" data-arch="${esc(v.id)}">Archivar</button></div></article>`).join('') || '<div class="nota">Aún no has publicado videos de estudio.</div>';
+  $('#cv-archivo', caja).addEventListener('change', e => { const f = e.target.files[0]; if (f && !$('#cv-titulo', caja).value) $('#cv-titulo', caja).value = f.name.replace(/\.[^.]+$/, ''); });
+  $('#cv-form', caja).addEventListener('submit', async e => {
+    e.preventDefault(); const f = $('#cv-archivo', caja).files[0], b = $('button[type=submit]', e.target);
+    if (!f) return avisar('Elige primero el video.', 'error');
+    if (f.size > CUES.maxMB * 1048576) return avisar(`El video pesa ${cuesMB(f.size)} y el máximo es ${CUES.maxMB} MB. Comprímelo o usa un tramo más corto.`, 'error', 8000);
+    bloquear(b, 'Publicando…'); const pct = cuesBarra($('#cv-prog', caja));
+    try {
+      const fileId = await cuesSubirArchivo(f, pct);
+      await llamarAdmin('cues_registrarVideo', {fileId, titulo: $('#cv-titulo', caja).value.trim() || f.name, habilidad: $('#cv-hab', caja).value, nivel: $('#cv-nivel', caja).value, descripcion: $('#cv-desc', caja).value.trim(), curso: $('#cv-curso', caja).value.trim()});
+      avisar('Video publicado: ya aparece en la lista de los estudiantes.', 'ok'); pintarAdmin();
+    } catch (err) { desbloquear(b); $('#cv-prog', caja).innerHTML = ''; avisar(err.message, 'error', 9000); }
+  });
+  caja.onclick = async e => {
+    const ver = e.target.closest('[data-ver]'), ar = e.target.closest('[data-arch]');
+    if (ver) { const v = lista.find(x => x.id === ver.dataset.ver); if (v) cuesVerVideo(v.titulo, v.fileId, v.mime); return; }
+    if (ar) {
+      const v = lista.find(x => x.id === ar.dataset.arch); if (!v) return;
+      const m = abrirModal(`<h2>Archivar video</h2><p>«${esc(v.titulo)}» dejará de aparecer a los estudiantes. Las entregas que ya hicieron con este video se conservan.</p><div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="button" id="ok-arch">Archivar</button></div>`);
+      $('#ok-arch', m.caja).addEventListener('click', async b => { const bt = b.currentTarget; bloquear(bt, 'Archivando…'); try { await llamarAdmin('cues_archivarVideo', {videoId: v.id}); m.cerrar(); avisar('Video archivado.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(bt); avisar(err.message, 'error'); } });
+    }
+  };
+}
+
+async function adminCuesEstudiantes(caja) {
+  const lista = await llamarAdmin('cues_usuarios');
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Crea el usuario de cada estudiante inscrito. El sistema le envía por correo una <b>clave temporal</b> y, al entrar por primera vez, él mismo crea su clave. El campo <b>Curso</b> decide qué videos ve: debe coincidir con el curso que escribas al publicar cada video.</div>
+    <form class="tarjeta form-grid" id="ce-form" novalidate><h3 style="margin:0">Crear estudiante</h3>
+      <div class="campo"><label for="ce-nombre">Nombre completo</label><input id="ce-nombre" maxlength="80"></div>
+      <div class="campo"><label for="ce-correo">Correo</label><input id="ce-correo" type="email" maxlength="120"><small class="mini secundario">Si es menor de edad, usa el correo de su acudiente.</small></div>
+      <div class="campo"><label for="ce-curso">Curso o grupo</label><input id="ce-curso" list="ce-cursos" maxlength="60" placeholder="Ej.: Básico martes"><datalist id="ce-cursos">${[...new Set(lista.map(u => u.curso).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <label class="check"><input type="checkbox" id="ce-mail" checked><span>Enviar el acceso por correo</span></label>
+      <button class="btn btn-dorado" type="submit">Crear estudiante</button><div id="ce-msg" role="status"></div></form>
+    <h3 style="margin:22px 0 10px">Estudiantes (${lista.length})</h3><div id="ce-lista" style="display:grid;gap:12px"></div>`;
+  $('#ce-lista', caja).innerHTML = lista.map(u => `<article class="tarjeta" style="margin:0${u.activo ? '' : ';opacity:.7'};display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center">
+      <div><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip chip-mal">Desactivado</span>'} ${u.aceptoDatos ? '' : '<span class="chip chip-aviso">Aún no ha entrado</span>'}<div class="mini secundario">${esc(u.correo)}${u.curso ? ' · ' + esc(u.curso) : ' · sin curso'} · Último ingreso: ${u.ultimoIngreso ? esc(fechaHora(u.ultimoIngreso)) : 'nunca'}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" data-rst="${esc(u.id)}">Restablecer clave</button><button class="btn ${u.activo ? 'btn-peligro' : 'btn-sec'} btn-peq" type="button" data-est="${esc(u.id)}">${u.activo ? 'Desactivar' : 'Activar'}</button></div></article>`).join('') || '<div class="nota">Aún no hay estudiantes. Crea el primero arriba.</div>';
+  $('#ce-form', caja).addEventListener('submit', async e => {
+    e.preventDefault(); const b = $('button[type=submit]', e.target); bloquear(b, 'Creando…');
+    try {
+      const r = await llamarAdmin('cues_crearUsuario', {nombre: $('#ce-nombre', caja).value, correo: $('#ce-correo', caja).value, curso: $('#ce-curso', caja).value, enviarCorreo: $('#ce-mail', caja).checked});
+      await pintarAdmin(); const msg = $('#ce-msg'); if (msg) msg.innerHTML = `<div class="nota" style="margin-top:10px">✔ Estudiante creado. Clave temporal: <b>${esc(r.claveTemporal)}</b> (tendrá que cambiarla al entrar).</div>`;
+    } catch (err) { desbloquear(b); avisar(err.message, 'error', 8000); }
+  });
+  caja.onclick = async e => {
+    const rst = e.target.closest('[data-rst]'), est = e.target.closest('[data-est]');
+    if (rst) {
+      const u = lista.find(x => x.id === rst.dataset.rst); if (!u) return;
+      const m = abrirModal(`<h2>Restablecer clave</h2><p>Se genera una clave temporal nueva para <b>${esc(u.nombre)}</b> y se le envía por correo. Tendrá que cambiarla al entrar.</p><div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-dorado" type="button" id="ok-rst">Restablecer</button></div>`);
+      $('#ok-rst', m.caja).addEventListener('click', async ev => { const bt = ev.currentTarget; bloquear(bt, 'Generando…'); try { const r = await llamarAdmin('cues_restablecerClave', {usuarioId: u.id}); m.cerrar(); avisar(`Clave temporal de ${u.nombre}: ${r.claveTemporal} ${r.correoEnviado ? '(enviada por correo)' : '(no se pudo enviar por correo: entrégasela tú)'}`, 'ok', 20000); } catch (err) { desbloquear(bt); avisar(err.message, 'error'); } });
+      return;
+    }
+    if (est) { const u = lista.find(x => x.id === est.dataset.est); if (!u) return; bloquear(est, '…'); try { await llamarAdmin('cues_estadoUsuario', {usuarioId: u.id, activo: !u.activo}); pintarAdmin(); } catch (err) { desbloquear(est); avisar(err.message, 'error'); } }
+  };
+}
+
+async function adminCuesRevision(caja) {
+  const lista = await llamarAdmin('cues_entregas', {estado: CUES.estado === 'TODAS' ? '' : CUES.estado});
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Grabaciones que los estudiantes enviaron. El sistema ya les dio una <b>calificación provisional</b>; tú revisas el video, puedes poner tu propia nota y un comentario, y marcas <b>Aprobar</b> o <b>Pedir repetir</b>. Al guardar, el estudiante recibe un correo.</div>
+    <div class="pestanas" role="group" aria-label="Filtrar entregas" style="margin:0 0 14px">${[['PENDIENTE', 'Pendientes de revisión'], ['TODAS', 'Todas']].map(([k, t]) => `<button type="button" data-filtro="${k}" aria-selected="${CUES.estado === k}">${t}</button>`).join('')}</div>
+    <div id="cr-lista" style="display:grid;gap:12px"></div>`;
+  $('#cr-lista', caja).innerHTML = lista.map(x => { const r = x.resultado || {}, li = a => (a && a.length) ? '<ul style="margin:6px 0 0 18px">' + a.slice(0, 4).map(t => `<li>${esc(t)}</li>`).join('') + '</ul>' : ''; return `<article class="tarjeta" style="margin:0" data-id="${esc(x.id)}">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center"><div><b>${esc(x.nombre)}</b> · ${esc(x.videoTitulo)} ${cuesChip(x.estado)}</div><span class="mini secundario">${esc(fechaHora(x.creado))}</span></div>
+      <p style="margin:8px 0 4px">Sistema: <span style="color:var(--color-principal)">${estrellasTxt(x.estrellas)}</span> <b>${x.puntaje}/100</b>${x.notaDocente !== null ? ` · Tu nota: <b>${x.notaDocente}/100</b>` : ''}</p>
+      <details><summary class="mini">Ver análisis del sistema</summary>${li(r.directivas)}${r.mejorar && r.mejorar.length ? '<div class="mini" style="margin-top:6px"><b>Para mejorar</b></div>' + li(r.mejorar) : ''}</details>
+      <div style="display:grid;gap:10px;margin-top:12px"><div><button class="btn btn-sec btn-peq" type="button" data-ver="${esc(x.id)}">▶ Ver video del estudiante</button></div>
+        <div class="campo"><label>Nota de la profesora (0 a 100, opcional)</label><input type="number" min="0" max="100" data-nota value="${x.notaDocente !== null ? x.notaDocente : ''}" style="max-width:140px"></div>
+        <div class="campo"><label>Comentario para el estudiante</label><textarea data-com rows="2" maxlength="1500">${esc(x.comentario || '')}</textarea></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" type="button" data-acc="APROBADO">Aprobar</button><button class="btn btn-peligro btn-peq" type="button" data-acc="REPETIR">Pedir repetir</button></div></div></article>`; }).join('') || '<div class="nota">No hay entregas en esta lista.</div>';
+  $$('[data-filtro]', caja).forEach(b => b.addEventListener('click', () => { CUES.estado = b.dataset.filtro; pintarAdmin(); }));
+  caja.onclick = async e => {
+    const ver = e.target.closest('[data-ver]'), acc = e.target.closest('[data-acc]');
+    if (ver) { const x = lista.find(i => i.id === ver.dataset.ver); if (x) cuesVerVideo(x.nombre + ' · ' + x.videoTitulo, x.fileId, x.mime); return; }
+    if (!acc) return;
+    const tar = acc.closest('article'), x = lista.find(i => i.id === tar.dataset.id); if (!x) return;
+    bloquear(acc, 'Guardando…');
+    try { await llamarAdmin('cues_revisar', {entregaId: x.id, estado: acc.dataset.acc, notaDocente: $('[data-nota]', tar).value, comentario: $('[data-com]', tar).value}); avisar(acc.dataset.acc === 'APROBADO' ? 'Entrega aprobada. Se avisó al estudiante.' : 'Se pidió repetir. Se avisó al estudiante.', 'ok'); pintarAdmin(); }
+    catch (err) { desbloquear(acc); avisar(err.message, 'error'); }
+  };
+}
+
 /* ---------- Página web: comentarios (testimonios y reseñas) ---------- */
 const WEB = {filtro: 'PENDIENTES'};
 const estrellasTxt = n => n ? '★'.repeat(n) + '☆'.repeat(5 - n) : '';
