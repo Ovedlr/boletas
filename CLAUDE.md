@@ -21,7 +21,7 @@ Responde y comenta en español. Sé breve: muestra solo los cambios, no repitas 
 - Sin cargo por servicio ni IVA. Aforo manual por evento; la venta se cierra sola al tope.
 - Boletas solo por correo, con QR, al confirmar el pago. Nunca por WhatsApp.
 - Comprobantes al WhatsApp 300 322 0443 con la referencia; información general al 314 777 9678.
-- Referencias: `BK-XXXXX` (boletas), `IN-` (inscripciones), `SM-` (Semillas), `SA-` (solicitudes de Sara).
+- Referencias: `BK-XXXXX` (boletas), `IN-` (inscripciones), `SM-` (Semillas), `SA-` (solicitudes de Sara), `AR-` (artistas) y `CT-` (solicitudes de contratación del Portal de los artistas).
   Sin caracteres confusos (0/O, 1/I/L). Las `BKH…` antiguas deben seguir funcionando.
 - Estudiantes: foto del carné con el comprobante; en portería, franja "PIDE EL CARNÉ".
 - Devoluciones solo si el evento se cancela.
