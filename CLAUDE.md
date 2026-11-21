@@ -19,7 +19,7 @@ Responde y comenta en español. Sé breve: muestra solo los cambios, no repitas 
 - Pagos solo por Nequi 314 777 9678 y Bancolombia ahorros 10537311952; confirmación manual en el panel.
   Las boletas se apartan 12 horas. Wompi desactivado (el código se conserva).
 - Sin cargo por servicio ni IVA. Aforo manual por evento; la venta se cierra sola al tope.
-- Boletas solo por correo, con QR, al confirmar el pago. Nunca por WhatsApp.
+- Boletas por correo, con QR, al confirmar el pago (correo marcado por defecto). Desde el 21-nov-2026, Oved aprobó que el administrador también pueda compartir el PDF por WhatsApp o Telegram desde el menú de compartir del celular, al confirmar.
 - Comprobantes al WhatsApp 300 322 0443 con la referencia; información general al 314 777 9678.
 - Referencias: `BK-XXXXX` (boletas), `IN-` (inscripciones), `SM-` (Semillas), `SA-` (solicitudes de Sara), `AR-` (artistas) y `CT-` (solicitudes de contratación del Portal de los artistas).
   Sin caracteres confusos (0/O, 1/I/L). Las `BKH…` antiguas deben seguir funcionando.

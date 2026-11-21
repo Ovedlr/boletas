@@ -905,7 +905,7 @@ const ApiDemo = (() => {
           if (o.estado === 'VENCIDA') { const ev = db.eventos.find(e => e.id === o.eventoId); if (publico(ev).disponibles < o.cantidad) fallo('La reserva venció y ya no hay cupo suficiente. Gestiona la devolución del dinero.'); }
           o.estado = 'PAGADA'; o.pagada = new Date().toISOString(); o.comprobante = String(d.comprobante || ''); o.notas = 'Pago confirmado desde el panel';
           emitir(o); guardar();
-          return {orden: vistaOrden(o), mensaje: 'Pago confirmado y boletas emitidas. (En demostración no se envía el correo ni se actualiza Drive).'};
+          return {orden: vistaOrden(o), mensaje: 'Pago confirmado y boletas emitidas. ' + (d.enviarCorreo === false ? 'Correo no enviado (así lo elegiste).' : '(En demostración no se envía el correo ni se actualiza Drive).')};
         }
         case 'guardarAsistentes': {
           const o = db.ordenes.find(x => x.referencia === d.referencia); if (!o) fallo('Orden no encontrada.');
@@ -918,6 +918,7 @@ const ApiDemo = (() => {
           const o = db.ordenes.find(x => x.referencia === d.referencia); if (!o) fallo('Orden no encontrada.');
           o.estado = 'ANULADA'; o.notas = 'Anulada: ' + (d.motivo || ''); db.boletas.filter(b => b.referencia === o.referencia).forEach(b => b.estado = 'ANULADA'); guardar(); return true;
         }
+        case 'registrarEnvio': return true;
         case 'reenviar': return {mensaje: 'En modo demostración no se envían correos.'};
         case 'orden': { const o = db.ordenes.find(x => x.referencia === d.referencia); if (!o) fallo('Orden no encontrada.'); return vistaOrden(o); }
         case 'validar': { const q = leerQR(d.contenido); return verificarDemo({codigo: q.codigo, firma: q.firma, eventoId: d.eventoId, marcar: true, dispositivo: 'Panel'}); }
@@ -1990,16 +1991,78 @@ function dialogoConfirmar(o) {
     ${cantEstudiantes(o.items) ? `<div class="nota" style="margin:0 0 14px;border-color:#f59e0b;background:rgba(245,158,11,.12)">🎓 <b>Esta compra incluye ${cantEstudiantes(o.items)} boleta${cantEstudiantes(o.items) > 1 ? 's' : ''} de estudiante.</b> Revisa en el WhatsApp ${cantEstudiantes(o.items) === 1 ? 'la foto de 1 carné' : `las fotos de ${cantEstudiantes(o.items)} carnés`} estudiantil${cantEstudiantes(o.items) > 1 ? 'es' : ''} vigente${cantEstudiantes(o.items) > 1 ? 's' : ''}.
       <label class="check" style="margin-top:10px"><input type="checkbox" id="ok-carnes"><span>Revisé ${cantEstudiantes(o.items) === 1 ? 'el carné' : `los ${cantEstudiantes(o.items)} carnés`} y ${cantEstudiantes(o.items) === 1 ? 'está vigente' : 'están vigentes'}.</span></label></div>` : ''}
     <div class="campo"><label for="comp">Número o nota del comprobante (opcional)</label><input id="comp" maxlength="120" placeholder="Ej.: M12345678 · 1 nov 9:15 p. m."></div>
-    <p class="nota" style="margin-top:14px">Antes de confirmar, verifica en tu app de ${o.metodo === 'BANCOLOMBIA' ? 'Bancolombia' : 'Nequi'} que el dinero ingresó. Al confirmar: se emiten las boletas, se envían con su QR al correo del comprador y se actualiza la base de datos en Excel.</p>
+    <fieldset class="tarjeta" style="padding:14px;margin-top:14px"><legend class="subtitulo" style="padding:0 6px">Enviar las boletas por</legend>
+      <label class="check"><input type="checkbox" id="env-correo" checked><span><b>Correo</b> · ${esc(o.email)}</span></label>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="env-whatsapp"><span><b>WhatsApp</b> · compartes el PDF desde tu celular</span></label>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="env-telegram"><span><b>Telegram</b> · compartes el PDF desde tu celular</span></label></fieldset>
+    <p class="nota" style="margin-top:14px">Antes de confirmar, verifica en tu app de ${o.metodo === 'BANCOLOMBIA' ? 'Bancolombia' : 'Nequi'} que el dinero ingresó. Al confirmar: se emiten las boletas, se envían por los medios que marcaste y se actualiza la base de datos en Excel.</p>
     <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-dorado" type="button" id="ok-confirmar">Confirmar y enviar boletas</button></div>`);
   $('#ok-confirmar', m.caja).addEventListener('click', async e => {
     const carnes = $('#ok-carnes', m.caja);
     if (carnes && !carnes.checked) { avisar('Marca la casilla cuando hayas revisado los carnés de estudiante.', 'error'); carnes.focus(); return; }
+    const medios = ['correo', 'whatsapp', 'telegram'].filter(k => $('#env-' + k, m.caja).checked);
+    if (!medios.length) { avisar('Marca al menos un medio para enviar las boletas.', 'error'); return; }
     const b = e.currentTarget; bloquear(b, 'Confirmando y enviando…');
     const nota = [$('#comp', m.caja).value.trim(), carnes ? 'Carnés revisados' : ''].filter(Boolean).join(' · ');
-    try { const r = await llamarAdmin('confirmarPagoManual', {referencia: o.referencia, comprobante: nota}); m.cerrar(); avisar(r.mensaje || 'Pago confirmado.', 'ok', 9000); pintarAdmin(); }
+    try {
+      const r = await llamarAdmin('confirmarPagoManual', {referencia: o.referencia, comprobante: nota, enviarCorreo: medios.includes('correo')}); m.cerrar();
+      const compartir = medios.filter(k => k !== 'correo');
+      if (compartir.length && r.orden) dialogoCompartir(r.orden, compartir, r.mensaje || 'Pago confirmado.');
+      else { avisar(r.mensaje || 'Pago confirmado.', 'ok', 9000); pintarAdmin(); }
+    }
     catch (err) { desbloquear(b); avisar(err.message, 'error', 8000); }
   });
+}
+
+/* Compartir las boletas por WhatsApp o Telegram desde el menú de compartir del celular */
+function mensajeBoletas(o) {
+  const ev = o.evento, enlace = location.origin + location.pathname + '#/orden/' + o.referencia + '/' + o.clave;
+  return [`¡Tus boletas están listas! 🎟️`, '',
+    `Hola ${o.nombre.split(' ')[0]}, gracias por acompañarnos 💜`, '',
+    `Evento: ${ev.nombre}`, `Fecha: ${fechaLarga(ev.fecha)}, ${horaBonita(ev.hora)}`, `Lugar: ${ev.lugar}${ev.direccion ? ' · ' + ev.direccion : ''}`,
+    `Boletas: ${o.detalle || o.items.map(i => i.cantidad + ' ' + i.nombre).join(' + ')}`, `Código de compra: ${o.referencia}`, `Total: ${pesos(o.total)}`, '',
+    'Presenta el código QR en la entrada, impreso o desde tu celular. Cada código permite un solo ingreso: no lo publiques en redes.', '',
+    `Ver y descargar tus boletas: ${enlace}`, '',
+    'Si el evento se cancela, te devolvemos el valor pagado. No hay devolución por inasistencia.', 'Corporación Cultural y Artística Barakah'].join('\n');
+}
+function dialogoCompartir(o, medios, resumen) {
+  const NOMBRE = {whatsapp: 'WhatsApp', telegram: 'Telegram'};
+  const texto = mensajeBoletas(o), tel = String(o.telefono || '').replace(/\D/g, '');
+  const m = abrirModal(`<h2>Compartir boletas</h2>
+    <div class="nota" style="margin:0 0 14px">✅ ${esc(resumen)}</div>
+    <div class="pago-datos">
+      <div class="pago-fila"><div><small>Comprador</small><b>${esc(o.nombre)}</b><small>${esc(o.referencia)} · ${esc(o.detalle || '')}</small></div></div>
+      <div class="pago-fila"><div><small>Celular del comprador</small><b>${esc(o.telefono || 'Sin celular')}</b></div>${tel ? `<button class="btn btn-sec btn-peq" type="button" data-copiar="${esc(tel)}">Copiar</button>` : ''}</div></div>
+    <p class="mini secundario" id="cp-estado" style="margin:14px 0 0">Preparando el PDF de las boletas…</p>
+    <div class="acciones" style="flex-wrap:wrap;gap:8px">${medios.map(k => `<button class="btn btn-dorado" type="button" data-medio="${k}" disabled>Enviar por ${NOMBRE[k]}</button>`).join('')}
+      <button class="btn btn-sec" type="button" id="cp-copiar">Copiar mensaje</button></div>
+    <p class="mini secundario" style="margin-top:12px">Al tocar el botón se abre el menú de compartir: elige ${medios.map(k => NOMBRE[k]).join(' o ')} y luego el contacto del comprador. Si el mensaje no llega junto al PDF, usa “Copiar mensaje” y pégalo en el chat.</p>
+    <div class="acciones"><span></span><button class="btn btn-sec" type="button" data-cerrar>Terminar</button></div>`, {alCerrar: () => pintarAdmin()});
+  const estado = $('#cp-estado', m.caja), nombreArchivo = `Boletas ${o.evento.nombre} ${o.referencia}.pdf`;
+  let pdf = null, archivo = null;
+  const copiar = async () => { try { await navigator.clipboard.writeText(texto); return true; } catch (e) { return false; } };
+  $('#cp-copiar', m.caja).addEventListener('click', async () => { const ok = await copiar(); avisar(ok ? 'Mensaje copiado. Pégalo en el chat.' : 'No se pudo copiar el mensaje.', ok ? 'ok' : 'error', 3000); });
+  generarPDF(o).then(p => {
+    pdf = p; archivo = new File([p.output('blob')], nombreArchivo, {type: 'application/pdf'});
+    estado.textContent = 'PDF listo. Elige por dónde enviarlo.';
+    $$('[data-medio]', m.caja).forEach(b => b.disabled = false);
+  }).catch(() => { estado.textContent = 'No se pudo preparar el PDF (revisa tu conexión). Cierra y usa “Reenviar correo” o inténtalo de nuevo.'; });
+  $$('[data-medio]', m.caja).forEach(b => b.addEventListener('click', async () => {
+    const medio = b.dataset.medio, nombre = NOMBRE[medio];
+    let enviado = false;
+    if (navigator.canShare && navigator.canShare({files: [archivo]})) {
+      try { await navigator.share({files: [archivo], title: nombreArchivo, text: texto}); enviado = true; }
+      catch (err) { if (err && err.name === 'AbortError') return; }
+    }
+    if (!enviado) {
+      // Computador o navegador sin la opción de compartir archivos: se descarga el PDF y se copia el mensaje
+      pdf.save(nombreArchivo); const ok = await copiar();
+      if (medio === 'whatsapp' && tel) window.open(`https://wa.me/57${tel}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+      avisar(`Este navegador no permite compartir archivos. Se descargó el PDF${ok ? ' y se copió el mensaje' : ''}: adjúntalo en ${nombre}.`, 'ok', 9000);
+    }
+    b.textContent = `✓ Enviado por ${nombre}`; b.classList.replace('btn-dorado', 'btn-sec');
+    llamarAdmin('registrarEnvio', {referencia: o.referencia, medio: nombre + (enviado ? '' : ' (PDF descargado)')}).catch(() => {});
+  }));
 }
 
 /* ---------- Inscripciones: clases regulares y Semillas en Movimiento ---------- */
