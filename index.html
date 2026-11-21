@@ -1797,7 +1797,8 @@ const SECCIONES_ADMIN = {
   inscripciones: {titulo: 'Inscripciones a clases', pestanas: [['inscripciones', 'Clases regulares'], ['semillas', 'Semillas en Movimiento']]},
   web: {titulo: 'Página web', pestanas: [['comentarios', 'Comentarios y reseñas'], ['blog', 'Blog']]},
   emisora: {titulo: 'Barakah Radio', pestanas: [['emisora', 'Panel de la emisora'], ['transmitir', 'Transmitir en vivo (RadioBOSS)']]},
-  cues: {titulo: 'Cues · Estudio', pestanas: [['cuesvideos', 'Videos de estudio'], ['cuesestudiantes', 'Estudiantes'], ['cuesrevision', 'Revisión de entregas']]}
+  cues: {titulo: 'Cues · Estudio', pestanas: [['cuesvideos', 'Videos de estudio'], ['cuesestudiantes', 'Estudiantes'], ['cuesrevision', 'Revisión de entregas']]},
+  artistas: {titulo: 'Portal de artistas', pestanas: [['artistas', 'Artistas registrados'], ['artsolicitudes', 'Solicitudes y pagos'], ['artseguridad', 'Seguridad']]}
 };
 const seccionGuardada = () => { try { const k = sessionStorage.getItem('barakah_seccion'); return SECCIONES_ADMIN[k] ? k : 'eventos'; } catch (e) { return 'eventos'; } };
 let ADMIN = {seccion: seccionGuardada(), pestana: SECCIONES_ADMIN[seccionGuardada()].pestanas[0][0], eventos: [], eventoSel: '', editar: null};
@@ -1807,15 +1808,15 @@ async function vistaAdmin(main) {
   main.innerHTML = `<div class="contenedor">
     <div class="admin-cab"><div><h1 style="font-size:clamp(1.6rem,4vw,2.2rem);margin:0">Panel de administración</h1>
         <span class="chip ${MODO_DEMO ? 'chip-aviso' : 'chip-ok'}" style="margin-top:6px">${MODO_DEMO ? '⚠ Modo demostración: no se envían correos ni se guarda en Drive' : '✓ Conectado al servidor y a Drive'}</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : ADMIN.seccion === 'web' ? 'Ver la página web' : ADMIN.seccion === 'emisora' ? 'Escuchar la radio' : ADMIN.seccion === 'cues' ? 'Abrir la página del estudiante' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dorado btn-peq" id="abrir-base" type="button">${ADMIN.seccion === 'inscripciones' ? 'Abrir hoja de inscripciones' : ADMIN.seccion === 'web' ? 'Ver la página web' : ADMIN.seccion === 'emisora' ? 'Escuchar la radio' : ADMIN.seccion === 'cues' ? 'Abrir la página del estudiante' : ADMIN.seccion === 'artistas' ? 'Ver el Portal de los artistas' : 'Abrir base de datos'}</button><button class="btn btn-sec btn-peq" id="salir" type="button">Cerrar sesión</button></div></div>
     <div class="secciones-admin" role="group" aria-label="Área del panel">
-      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${{eventos: '🎟️', inscripciones: '💃', web: '🌐', emisora: '📻', cues: '🎬'}[k]}</span> ${esc(sec.titulo)}</button>`).join('')}
+      ${Object.entries(SECCIONES_ADMIN).map(([k, sec]) => `<button type="button" data-seccion="${k}" aria-pressed="${ADMIN.seccion === k}"><span aria-hidden="true">${{eventos: '🎟️', inscripciones: '💃', web: '🌐', emisora: '📻', cues: '🎬', artistas: '🎭'}[k]}</span> ${esc(sec.titulo)}</button>`).join('')}
     </div>
     <div class="pestanas" role="tablist" aria-label="Pestañas de ${esc(SECCIONES_ADMIN[ADMIN.seccion].titulo)}">
       ${SECCIONES_ADMIN[ADMIN.seccion].pestanas.map(([k, t]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${ADMIN.pestana === k}">${t}</button>`).join('')}
     </div><section id="admin-cuerpo" role="tabpanel"></section></div>`;
   $('#salir').addEventListener('click', () => { Sesion.salir(); enrutar(); });
-  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : ADMIN.seccion === 'web' ? window.open('https://albarakah.com.co/', '_blank', 'noopener') : ADMIN.seccion === 'emisora' ? window.open(RADIO.pagina, '_blank', 'noopener') : ADMIN.seccion === 'cues' ? window.open('https://albarakah.com.co/estudio/', '_blank', 'noopener') : abrirBaseDatos());
+  $('#abrir-base').addEventListener('click', e => ADMIN.seccion === 'inscripciones' ? abrirHojaIns(e.currentTarget) : ADMIN.seccion === 'web' ? window.open('https://albarakah.com.co/', '_blank', 'noopener') : ADMIN.seccion === 'emisora' ? window.open(RADIO.pagina, '_blank', 'noopener') : ADMIN.seccion === 'cues' ? window.open('https://albarakah.com.co/estudio/', '_blank', 'noopener') : ADMIN.seccion === 'artistas' ? window.open('https://albarakah.com.co/artistas', '_blank', 'noopener') : abrirBaseDatos());
   $$('[data-seccion]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.seccion; if (k === ADMIN.seccion) return;
     ADMIN.seccion = k; ADMIN.pestana = SECCIONES_ADMIN[k].pestanas[0][0]; INS.filtro = ''; INS.estado = '';
@@ -1857,6 +1858,7 @@ async function pintarAdmin() {
     if (ADMIN.seccion === 'inscripciones') { await ({inscripciones: adminInscripciones, semillas: adminSemillas}[ADMIN.pestana] || adminInscripciones)(caja); return; }
     if (ADMIN.seccion === 'web') { await ({comentarios: adminComentarios, blog: adminBlog}[ADMIN.pestana] || adminComentarios)(caja); return; }
     if (ADMIN.seccion === 'cues') { await ({cuesvideos: adminCuesVideos, cuesestudiantes: adminCuesEstudiantes, cuesrevision: adminCuesRevision}[ADMIN.pestana] || adminCuesVideos)(caja); return; }
+    if (ADMIN.seccion === 'artistas') { await ({artistas: adminArtistas, artsolicitudes: adminArtSolicitudes, artseguridad: adminArtSeguridad}[ADMIN.pestana] || adminArtistas)(caja); return; }
     if (ADMIN.seccion === 'emisora') { await ({emisora: adminEmisora, transmitir: adminTransmitir}[ADMIN.pestana] || adminEmisora)(caja); return; }
     ADMIN.eventos = (await llamarAdmin('eventos')).sort((a, b) => momentoEvento(b) - momentoEvento(a));
     if (!ADMIN.eventoSel || !ADMIN.eventos.find(e => e.id === ADMIN.eventoSel)) {
@@ -2330,6 +2332,199 @@ async function adminCuesRevision(caja) {
     bloquear(acc, 'Guardando…');
     try { await llamarAdmin('cues_revisar', {entregaId: x.id, estado: acc.dataset.acc, notaDocente: $('[data-nota]', tar).value, comentario: $('[data-com]', tar).value}); avisar(acc.dataset.acc === 'APROBADO' ? 'Entrega aprobada. Se avisó al estudiante.' : 'Se pidió repetir. Se avisó al estudiante.', 'ok'); pintarAdmin(); }
     catch (err) { desbloquear(acc); avisar(err.message, 'error'); }
+  };
+}
+
+/* ---------- Portal de los artistas (https://albarakah.com.co/artistas) ----------
+   Los artistas se registran solos, verifican su correo y suben su foto. Al verificar llega un aviso por Telegram.
+   Aquí se aprueban (salen en la vitrina), se piden ajustes o se desactivan, y se gestionan las solicitudes de contratación.
+   Datos: libro "Portal de Artistas Barakah" y carpeta "Portal de Artistas Barakah (fotos)" en Drive.
+   Acciones del servidor: admin_art_* (archivo servidor/Artistas.gs del repo barakahco). */
+const ART = {estado: 'PENDIENTE', buscar: '', fotos: {}};
+const ART_ESTADOS = {SIN_VERIFICAR: ['Correo sin verificar', ''], PENDIENTE: ['Por revisar', 'chip-aviso'], APROBADO: ['Publicado', 'chip-ok'], RECHAZADO: ['Requiere ajustes', 'chip-mal'], INACTIVO: ['Desactivado', 'chip-mal']};
+const ART_SOL = {POR_VERIFICAR: ['Sin confirmar', ''], NUEVA: ['Nueva', 'chip-aviso'], ACEPTADA: ['Aceptada · falta pago', 'chip-aviso'], PAGADA: ['Pagada · esperando llegada', 'chip-ok'], CUMPLIDA: ['Llegada confirmada · transferir', 'chip-aviso'], TRANSFERIDA: ['Transferida', 'chip-ok'], RECHAZADA_ARTISTA: ['Rechazada por el artista', 'chip-mal'], EN_GESTION: ['En gestión', ''], CERRADA: ['Cerrada', ''], DESCARTADA: ['Descartada', 'chip-mal'], CANCELADA: ['Cancelada', 'chip-mal']};
+const ART_SOL_MANUAL = ['NUEVA', 'EN_GESTION', 'CERRADA', 'DESCARTADA', 'CANCELADA'];
+const artDin = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CO');
+const artSi = v => v === true || String(v).toUpperCase() === 'TRUE';
+const artChip = (m, k) => `<span class="chip ${(m[k] || ['', ''])[1]}">${esc((m[k] || [k])[0])}</span>`;
+const artWa = (cel, txt) => `https://wa.me/57${String(cel || '').replace(/\D/g, '')}${txt ? '?text=' + encodeURIComponent(txt) : ''}`;
+const artLink = u => u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u.replace(/^https?:\/\//, '').slice(0, 40))}</a>` : '—';
+
+async function adminArtistas(caja) {
+  const lista = await llamarAdmin('art_lista');
+  const cuenta = k => lista.filter(a => a.estado === k).length;
+  const q = ART.buscar.trim().toLowerCase();
+  const vista = lista.filter(a => (ART.estado === 'TODOS' || a.estado === ART.estado) && (!q || [a.nombreArtistico, a.responsable, a.correo, a.municipio, a.disciplina, a.especialidad, a.id].join(' ').toLowerCase().includes(q)));
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px">Artistas que se registraron en <a href="https://albarakah.com.co/artistas" target="_blank" rel="noopener">albarakah.com.co/artistas</a>. Cuando un artista verifica su correo te llega un aviso por Telegram y queda <b>Por revisar</b>. Al <b>Aprobar</b>, su perfil y su foto salen en la vitrina y el artista recibe un correo. Documento, correo y celular nunca se publican.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;justify-content:space-between;margin-bottom:14px">
+      <div class="pestanas" role="group" aria-label="Filtrar artistas" style="margin:0">${[['PENDIENTE', 'Por revisar'], ['APROBADO', 'Publicados'], ['RECHAZADO', 'Requieren ajustes'], ['INACTIVO', 'Desactivados'], ['SIN_VERIFICAR', 'Sin verificar'], ['TODOS', 'Todos']].map(([k, t]) => `<button type="button" data-filtro="${k}" aria-selected="${ART.estado === k}">${t} (${k === 'TODOS' ? lista.length : cuenta(k)})</button>`).join('')}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end"><div class="campo" style="margin:0"><label for="art-buscar">Buscar</label><input id="art-buscar" placeholder="Nombre, municipio, correo…" value="${esc(ART.buscar)}" style="min-width:230px"></div><button class="btn btn-sec btn-peq" type="button" id="art-excel">Descargar Excel</button></div>
+    </div>
+    <div id="art-lista" style="display:grid;gap:14px"></div>`;
+  $('#art-lista', caja).innerHTML = vista.map(a => `<article class="tarjeta" style="margin:0" data-id="${esc(a.id)}">
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:start">
+        <div data-foto="${esc(a.id)}" style="width:110px;aspect-ratio:4/5;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.06);display:grid;place-items:center;font-size:2rem">${a.tieneFoto ? '⏳' : '🙂'}</div>
+        <div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between"><div><b style="font-size:1.1rem">${esc(a.nombreArtistico)}</b> ${artChip(ART_ESTADOS, a.estado)}</div><span class="mini secundario">${esc(a.id)} · ${esc(fechaHora(a.creado))}</span></div>
+          <div class="mini" style="margin-top:4px">${esc([a.tipo, a.disciplina + ' · ' + a.especialidad, '📍 ' + a.municipio, 'Cobertura: ' + a.cobertura].join(' · '))}</div>
+          <div class="mini secundario" style="margin-top:4px">👤 ${esc(a.responsable)} · ${esc(a.tipoDoc)} ${esc(a.documento)} · <a href="${artWa(a.celular, 'Hola ' + a.responsable + ', te escribimos de Barakah por tu perfil en el Portal de los artistas.')}" target="_blank" rel="noopener">WhatsApp ${esc(a.celular)}</a> · <a href="mailto:${esc(a.correo)}">${esc(a.correo)}</a></div>
+          <div class="mini" style="margin-top:6px">💰 ${a.tarifaDesde ? 'Desde ' + esc(pesos(a.tarifaDesde)) + ' COP' : 'A convenir'} · ⏱ ${a.duracion} min · 👥 ${a.integrantes} · ${a.trayectoria ? a.trayectoria + ' años de trayectoria' : 'sin trayectoria indicada'}</div>
+          <div class="mini secundario" style="margin-top:4px">Eventos: ${esc(a.eventos.join(', '))}</div>
+          <details style="margin-top:8px"><summary class="mini">Presentación, técnica y enlaces</summary><p class="mini" style="white-space:pre-line">${esc(a.bio)}</p>${a.tecnica ? `<p class="mini"><b>Técnica:</b> ${esc(a.tecnica)}</p>` : ''}<p class="mini">Video: ${artLink(a.video)} · Redes: ${artLink(a.redes)}</p><p class="mini secundario">Verificado: ${a.verificado ? esc(fechaHora(a.verificado)) : 'no'} · Actualizado: ${esc(fechaHora(a.actualizado))} · Último ingreso: ${a.ultimoIngreso ? esc(fechaHora(a.ultimoIngreso)) : 'nunca'}</p>${a.notaAdmin ? `<p class="mini"><b>Nota interna/al artista:</b> ${esc(a.notaAdmin)}</p>` : ''}</details>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            ${a.estado !== 'APROBADO' && a.estado !== 'SIN_VERIFICAR' ? '<button class="btn btn-dorado btn-peq" type="button" data-acc="APROBADO">✔ Aprobar y publicar</button>' : ''}
+            ${a.estado === 'PENDIENTE' || a.estado === 'APROBADO' ? '<button class="btn btn-sec btn-peq" type="button" data-acc="RECHAZADO">Pedir ajustes</button>' : ''}
+            ${a.estado === 'APROBADO' ? '<button class="btn btn-peligro btn-peq" type="button" data-acc="INACTIVO">Desactivar</button>' : ''}
+            ${a.estado === 'RECHAZADO' || a.estado === 'INACTIVO' ? '<button class="btn btn-sec btn-peq" type="button" data-acc="PENDIENTE">Volver a revisión</button>' : ''}
+            <button class="btn btn-peligro btn-peq" type="button" data-borrar="1">Eliminar</button>
+          </div>
+        </div></div></article>`).join('') || '<div class="nota">No hay artistas en esta lista.</div>';
+  $$('[data-filtro]', caja).forEach(b => b.addEventListener('click', () => { ART.estado = b.dataset.filtro; pintarAdmin(); }));
+  let t; $('#art-buscar', caja).addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => { ART.buscar = e.target.value; pintarAdmin().then(() => { const i = $('#art-buscar'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 400); });
+  $('#art-excel', caja).addEventListener('click', () => descargarExcel('Portal de artistas Barakah.xlsx', {Artistas: [['Referencia', 'Estado', 'Nombre artístico', 'Tipo', 'Responsable', 'Documento', 'Celular', 'Correo', 'Disciplina', 'Especialidad', 'Trayectoria (años)', 'Municipio', 'Cobertura', 'Eventos', 'Duración (min)', 'Integrantes', 'Tarifa desde (COP)', 'Video', 'Redes', 'Registro', 'Verificado'],
+    ...lista.map(a => [a.id, (ART_ESTADOS[a.estado] || [a.estado])[0], a.nombreArtistico, a.tipo, a.responsable, a.tipoDoc + ' ' + a.documento, a.celular, a.correo, a.disciplina, a.especialidad, a.trayectoria, a.municipio, a.cobertura, a.eventos.join(', '), a.duracion, a.integrantes, a.tarifaDesde, a.video, a.redes, fechaHora(a.creado), fechaHora(a.verificado)])]}));
+  // Fotos: las privadas se piden al servidor; se guardan en memoria mientras el panel esté abierto.
+  (async () => { for (const a of vista.filter(x => x.tieneFoto).slice(0, 30)) {
+    const cont = $(`[data-foto="${a.id}"]`); if (!cont) return;
+    try { if (!ART.fotos[a.id]) { const f = await llamarAdmin('art_foto', {id: a.id}); ART.fotos[a.id] = `data:${f.mime};base64,${f.b64}`; }
+      cont.innerHTML = `<img src="${ART.fotos[a.id]}" alt="Foto de ${esc(a.nombreArtistico)}" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in" data-zoom="${esc(a.id)}">`; } catch (e) { cont.textContent = '⚠'; }
+  } })();
+  caja.onclick = async e => {
+    const z = e.target.closest('[data-zoom]'); if (z) { abrirModal(`<img src="${ART.fotos[z.dataset.zoom]}" alt="" style="width:100%;border-radius:12px"><div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cerrar</button></div>`); return; }
+    const tar = e.target.closest('article[data-id]'); if (!tar) return;
+    const a = lista.find(x => x.id === tar.dataset.id); if (!a) return;
+    const acc = e.target.closest('[data-acc]'), borrar = e.target.closest('[data-borrar]');
+    if (borrar) {
+      const m = abrirModal(`<h2>Eliminar perfil</h2><p>Se borra el perfil de <b>${esc(a.nombreArtistico)}</b> y su foto. No se puede deshacer. Úsalo solo si el artista lo pide o si es un registro falso.</p><div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="button" id="ok-del">Eliminar</button></div>`);
+      $('#ok-del', m.caja).addEventListener('click', async ev => { const b = ev.currentTarget; bloquear(b, 'Eliminando…'); try { await llamarAdmin('art_eliminar', {id: a.id}); m.cerrar(); avisar('Perfil eliminado.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(b); avisar(err.message, 'error'); } });
+      return;
+    }
+    if (!acc) return;
+    const estado = acc.dataset.acc;
+    if (estado === 'RECHAZADO' || estado === 'INACTIVO') {
+      const m = abrirModal(`<h2>${estado === 'RECHAZADO' ? 'Pedir ajustes' : 'Desactivar perfil'}</h2><p>${estado === 'RECHAZADO' ? `<b>${esc(a.nombreArtistico)}</b> recibirá un correo con el motivo y podrá corregir sus datos desde su cuenta.` : `El perfil de <b>${esc(a.nombreArtistico)}</b> deja de verse en la vitrina y su foto vuelve a ser privada.`}</p>
+        <div class="campo"><label for="art-nota">${estado === 'RECHAZADO' ? 'Qué debe ajustar (lo verá el artista)' : 'Nota interna (opcional)'}</label><textarea id="art-nota" rows="3" maxlength="500">${esc(a.notaAdmin || '')}</textarea></div>
+        <div class="acciones"><button class="btn btn-sec" type="button" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="button" id="ok-est">${estado === 'RECHAZADO' ? 'Enviar' : 'Desactivar'}</button></div>`);
+      $('#ok-est', m.caja).addEventListener('click', async ev => { const b = ev.currentTarget; bloquear(b, 'Guardando…'); try { await llamarAdmin('art_estado', {id: a.id, estado, nota: $('#art-nota', m.caja).value}); m.cerrar(); avisar('Listo.', 'ok'); pintarAdmin(); } catch (err) { desbloquear(b); avisar(err.message, 'error'); } });
+      return;
+    }
+    bloquear(acc, 'Guardando…');
+    try { await llamarAdmin('art_estado', {id: a.id, estado, nota: ''}); avisar(estado === 'APROBADO' ? `${a.nombreArtistico} ya está en la vitrina. Se le avisó por correo.` : 'Perfil devuelto a revisión.', 'ok', 7000); pintarAdmin(); }
+    catch (err) { desbloquear(acc); avisar(err.message, 'error'); }
+  };
+}
+
+async function adminArtSolicitudes(caja) {
+  const [lista, cfg] = await Promise.all([llamarAdmin('art_solicitudes'), llamarAdmin('art_config')]);
+  const cfgOk = [cfg.comisionPct, cfg.retefuentePct, cfg.reteicaPct, cfg.otrasPct].some(n => Number(n) > 0);
+  caja.innerHTML = `<div class="nota" style="margin-bottom:16px"><b>Flujo sin retención de fondos:</b> el cliente paga a Barakah → registras el pago (el cliente recibe un PIN por correo) → el artista llega y escribe el PIN → transfieres al artista descontando comisión y retenciones, que quedan registradas. Cada paso queda en el historial. Los lugares apartados necesitan tu aprobación antes de que el artista pueda aceptar.
+      ${cfgOk ? '' : '<br><b style="color:var(--error)">⚠️ Aún no has definido comisión ni retenciones.</b> Fíjalas en la pestaña Seguridad con tu contador antes de la primera transferencia.'}</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-sec btn-peq" type="button" id="sol-excel">Descargar Excel</button></div>
+    <div id="sol-lista" style="display:grid;gap:12px"></div>`;
+  const campo = (et, attr, extra = '') => `<div class="campo"><label>${et}</label><input ${attr} ${extra}></div>`;
+  const acciones = s => {
+    if (s.estado === 'NUEVA' && artSi(s.requiereRevision) && !s.revisionOk) return `<div class="nota" style="margin:10px 0 0"><b>⚠️ ${esc(s.tipoLugar)}:</b> revisa el lugar (mapa y referencias del cliente) antes de que el artista pueda aceptar.
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-dorado btn-peq" data-acc="lugar-ok">Aprobar lugar</button><button class="btn btn-peligro btn-peq" data-acc="lugar-no">No aprobar</button></div></div>`;
+    if (s.estado === 'ACEPTADA') return `<div class="tarjeta" style="margin:10px 0 0"><b>Registrar pago recibido</b><div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;margin-top:8px">
+        ${campo('Valor recibido (COP)', 'data-valor inputmode="numeric"')}${campo('Medio', 'data-medio value="Nequi"')}${campo('Referencia del pago', 'data-ref maxlength="60"')}
+        <button class="btn btn-dorado btn-peq" data-acc="pago">Registrar pago y enviar PIN</button></div></div>`;
+    if (s.estado === 'PAGADA') return `<p class="mini" style="margin:10px 0 0">💳 Pago ${artDin(s.valor)} · ${esc(s.pagoMedio)} · ${esc(s.pagoRef)}. ${s.pinBloqueado ? '<b style="color:var(--error)">PIN bloqueado por intentos fallidos: confirma con el artista y el cliente.</b>' : 'Esperando que el artista escriba el PIN del cliente.'}</p>`;
+    if (s.estado === 'CUMPLIDA') return `<div class="tarjeta" style="margin:10px 0 0"><b>Transferir al artista</b> <span class="mini secundario">Pagó el cliente ${artDin(s.valor)} · llegada ${esc(fechaHora(s.llegadaFecha))}${s.llegadaLat ? ' · con ubicación' : ' · sin ubicación'}</span>
+        <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));align-items:end;margin-top:8px">
+        ${campo('Comisión %', `data-pct="comisionPct" inputmode="decimal" value="${cfg.comisionPct}"`)}${campo('Retefuente %', `data-pct="retefuentePct" inputmode="decimal" value="${cfg.retefuentePct}"`)}${campo('ReteICA %', `data-pct="reteicaPct" inputmode="decimal" value="${cfg.reteicaPct}"`)}${campo('Otras %', `data-pct="otrasPct" inputmode="decimal" value="${cfg.otrasPct}"`)}
+        ${campo('Referencia de la transferencia', 'data-ref maxlength="60"')}<button class="btn btn-dorado btn-peq" data-acc="transferir">Registrar transferencia</button></div>
+        <p class="mini" style="margin:8px 0 0" data-neto></p></div>`;
+    if (s.estado === 'TRANSFERIDA') return `<p class="mini" style="margin:10px 0 0">✅ Valor ${artDin(s.valor)} − comisión ${artDin(s.comision)} − retefuente ${artDin(s.retefuente)} − ReteICA ${artDin(s.reteica)}${Number(s.otras) ? ' − otras ' + artDin(s.otras) : ''} = <b>${artDin(s.neto)}</b> · ref. ${esc(s.transferRef)} · ${esc(fechaHora(s.transferFecha))}</p>`;
+    return '';
+  };
+  const pintar = () => {
+    $('#sol-lista', caja).innerHTML = lista.map(s => `<article class="tarjeta" style="margin:0" data-id="${esc(s.id)}">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center"><div><b>${esc(s.artistaNombre)}</b> · ${esc(s.id)} ${artChip(ART_SOL, s.estado)} ${artSi(s.clienteNuevo) ? '<span class="chip chip-aviso">🆕 Cliente nuevo</span>' : ''} ${s.tipoLugar && s.tipoLugar !== 'Casco urbano' ? `<span class="chip chip-mal">⚠️ ${esc(s.tipoLugar)}</span>` : ''}</div><span class="mini secundario">${esc(fechaHora(s.creado))}</span></div>
+      <p class="mini" style="margin:8px 0 4px">📅 <b>${esc(s.fecha)}</b> · 📍 ${esc(s.municipio)}${s.tipoEvento ? ' · ' + esc(s.tipoEvento) : ''}${s.direccion ? ' · ' + esc(s.direccion) : ''}${s.lat !== '' && s.lat !== undefined ? ` · <a href="https://www.google.com/maps?q=${esc(s.lat)},${esc(s.lng)}" target="_blank" rel="noopener">Ver mapa</a>` : ''}</p>
+      <p class="mini secundario" style="margin:0">Cliente: ${esc(s.nombre)} · <a href="${artWa(s.celular, 'Hola ' + s.nombre + ', te escribimos de Barakah por tu solicitud ' + s.id + ' para contratar a ' + s.artistaNombre + '.')}" target="_blank" rel="noopener">WhatsApp ${esc(s.celular)}</a> · <a href="mailto:${esc(s.correo)}">${esc(s.correo)}</a></p>
+      ${s.mensaje ? `<p class="mini" style="white-space:pre-line">${esc(s.mensaje)}</p>` : ''}
+      ${acciones(s)}
+      <div style="display:grid;gap:8px;grid-template-columns:minmax(160px,220px) 1fr auto;align-items:end;margin-top:10px">
+        <div class="campo"><label>Cambiar estado (manual)</label><select data-est>${ART_SOL_MANUAL.includes(s.estado) ? '' : `<option value="${esc(s.estado)}" selected disabled>${esc((ART_SOL[s.estado] || [s.estado])[0])}</option>`}${ART_SOL_MANUAL.map(k => `<option value="${k}" ${s.estado === k ? 'selected' : ''}>${ART_SOL[k][0]}</option>`).join('')}${s.estado === 'PAGADA' || s.estado === 'CUMPLIDA' || s.estado === 'TRANSFERIDA' ? '' : ''}</select></div>
+        <div class="campo"><label>Nota interna</label><input data-nota maxlength="800" value="${esc(s.notaAdmin || '')}"></div>
+        <button class="btn btn-dorado btn-peq" type="button" data-guardar>Guardar</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-sec btn-peq" data-acc="historial">Ver historial</button><button class="btn btn-sec btn-peq" data-acc="bloquear">Bloquear a este cliente</button></div>
+      <div data-hist class="mini" style="margin-top:8px"></div></article>`).join('') || '<div class="nota">Aún no hay solicitudes de contratación.</div>';
+    $$('[data-pct]', caja).forEach(i => i.addEventListener('input', () => actualizarNeto(i.closest('article'))));
+    $$('article[data-id]', caja).forEach(actualizarNeto);
+  };
+  const actualizarNeto = tar => {
+    const s = lista.find(x => x.id === tar.dataset.id), out = $('[data-neto]', tar); if (!out || !s) return;
+    const v = Number(s.valor) || 0, p = k => Number($(`[data-pct="${k}"]`, tar).value) || 0, d = k => Math.round(v * p(k) / 100);
+    const neto = v - d('comisionPct') - d('retefuentePct') - d('reteicaPct') - d('otrasPct');
+    out.innerHTML = `Neto a transferir: <b>${artDin(neto)}</b> (comisión ${artDin(d('comisionPct'))} · retefuente ${artDin(d('retefuentePct'))} · ReteICA ${artDin(d('reteicaPct'))}${p('otrasPct') ? ' · otras ' + artDin(d('otrasPct')) : ''})`;
+  };
+  pintar();
+  $('#sol-excel', caja).addEventListener('click', () => descargarExcel('Solicitudes de contratación Barakah.xlsx', {Solicitudes: [['Referencia', 'Fecha de solicitud', 'Artista', 'Cliente', 'Celular', 'Correo', 'Cliente nuevo', 'Fecha del evento', 'Municipio', 'Tipo de lugar', 'Dirección', 'Tipo de evento', 'Mensaje', 'Estado', 'Valor pagado', 'Medio', 'Referencia pago', 'Fecha pago', 'Comisión', 'Retefuente', 'ReteICA', 'Otras', 'Neto transferido', 'Referencia transferencia', 'Fecha transferencia', 'Nota'],
+    ...lista.map(s => [s.id, fechaHora(s.creado), s.artistaNombre, s.nombre, s.celular, s.correo, artSi(s.clienteNuevo) ? 'Sí' : 'No', s.fecha, s.municipio, s.tipoLugar, s.direccion, s.tipoEvento, s.mensaje, (ART_SOL[s.estado] || [s.estado])[0], s.valor, s.pagoMedio, s.pagoRef, s.pagoFecha ? fechaHora(s.pagoFecha) : '', s.comision, s.retefuente, s.reteica, s.otras, s.neto, s.transferRef, s.transferFecha ? fechaHora(s.transferFecha) : '', s.notaAdmin])]}));
+  caja.onclick = async e => {
+    const g = e.target.closest('[data-guardar]'), a = e.target.closest('[data-acc]'); if (!g && !a) return;
+    const tar = (g || a).closest('article'), id = tar.dataset.id, btn = g || a, s = lista.find(x => x.id === id);
+    const val = k => $(k, tar) ? $(k, tar).value : '';
+    try {
+      if (g) { bloquear(g, 'Guardando…'); await llamarAdmin('art_estadoSolicitud', {id, estado: val('[data-est]'), nota: val('[data-nota]')}); avisar('Solicitud actualizada.', 'ok'); }
+      else if (a.dataset.acc === 'historial') {
+        const h = await llamarAdmin('art_auditoria', {solicitudId: id});
+        $('[data-hist]', tar).innerHTML = h.length ? h.map(x => `${esc(fechaHora(x.fecha))} · <b>${esc(x.actor)}</b> · ${esc(x.accion)}${x.a ? ' → ' + esc(x.a) : ''}${x.nota ? ' · ' + esc(x.nota) : ''}`).join('<br>') : 'Sin movimientos.'; return;
+      }
+      else if (a.dataset.acc === 'bloquear') {
+        const motivo = prompt(`Motivo para bloquear el correo y el celular de ${s.nombre}. No podrán enviar solicitudes ni registrarse:`); if (!motivo) return;
+        bloquear(a, 'Bloqueando…'); await llamarAdmin('art_bloquear', {tipo: 'correo', valor: s.correo, motivo}); await llamarAdmin('art_bloquear', {tipo: 'celular', valor: s.celular, motivo}); avisar('Cliente bloqueado.', 'ok');
+      }
+      else if (a.dataset.acc === 'lugar-ok') { bloquear(a, 'Aprobando…'); await llamarAdmin('art_revisionSolicitud', {id, ok: true, nota: ''}); avisar('Lugar aprobado: el artista ya puede aceptar.', 'ok'); }
+      else if (a.dataset.acc === 'lugar-no') { const nota = prompt('Motivo para no aprobar el lugar (se le informa al cliente):'); if (!nota) return; bloquear(a, 'Guardando…'); await llamarAdmin('art_revisionSolicitud', {id, ok: false, nota}); avisar('Solicitud descartada.', 'ok'); }
+      else if (a.dataset.acc === 'pago') {
+        const valor = val('[data-valor]'), ref = val('[data-ref]');
+        if (!confirm(`Registrar pago de ${artDin(valor)} (ref. ${ref}) de ${s.nombre}?\nSe enviará el PIN de llegada al correo del cliente.`)) return;
+        bloquear(a, 'Registrando…'); await llamarAdmin('art_registrarPago', {id, valor, medio: val('[data-medio]'), referencia: ref}); avisar('Pago registrado y PIN enviado al cliente.', 'ok');
+      }
+      else if (a.dataset.acc === 'transferir') {
+        const d = {id, referencia: val('[data-ref]')}; $$('[data-pct]', tar).forEach(i => { d[i.dataset.pct] = i.value || 0; });
+        if (!confirm(`Registrar que ya transferiste al artista?\n${$('[data-neto]', tar).innerText}\nSe le enviará el detalle por correo.`)) return;
+        bloquear(a, 'Registrando…'); await llamarAdmin('art_registrarTransferencia', d); avisar('Transferencia registrada.', 'ok');
+      }
+      pintarAdmin();
+    } catch (err) { desbloquear(btn); avisar(err.message, 'error'); }
+  };
+}
+
+async function adminArtSeguridad(caja) {
+  const [cfg, reportes, bloqueos, audit] = await Promise.all([llamarAdmin('art_config'), llamarAdmin('art_reportes'), llamarAdmin('art_bloqueos'), llamarAdmin('art_auditoria', {})]);
+  const nuevos = reportes.filter(r => r.estado === 'NUEVO').length;
+  caja.innerHTML = `<div class="tarjeta"><h3 style="margin-top:0">Comisión y retenciones (porcentajes por defecto)</h3>
+      <p class="mini secundario">Barakah recibe el pago y transfiere al artista. Define con tu contador los porcentajes de comisión, retención en la fuente, ReteICA y otras que correspondan. Se proponen en cada transferencia y puedes ajustarlos caso por caso.</p>
+      <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));align-items:end">
+        ${[['comisionPct', 'Comisión %'], ['retefuentePct', 'Retefuente %'], ['reteicaPct', 'ReteICA %'], ['otrasPct', 'Otras %']].map(([k, t]) => `<div class="campo"><label>${t}</label><input data-cfg="${k}" inputmode="decimal" value="${esc(cfg[k])}"></div>`).join('')}
+        <div class="campo"><label>Nota</label><input data-cfg="nota" maxlength="300" value="${esc(cfg.nota || '')}"></div>
+        <button class="btn btn-dorado btn-peq" id="cfg-guardar">Guardar</button></div></div>
+    <div class="tarjeta"><h3 style="margin-top:0">Reportes de fraude ${nuevos ? `<span class="chip chip-mal">${nuevos} nuevos</span>` : ''}</h3><div id="rep-lista" style="display:grid;gap:10px"></div></div>
+    <div class="tarjeta"><h3 style="margin-top:0">Lista de bloqueo</h3>
+      <p class="mini secundario">Se guarda como huella: no queda el dato en claro, solo una referencia parcial. Bloquea correos, celulares y documentos reportados.</p>
+      <div style="display:grid;gap:8px;grid-template-columns:140px 1fr 1fr auto;align-items:end"><div class="campo"><label>Tipo</label><select id="bl-tipo"><option value="correo">Correo</option><option value="celular">Celular</option><option value="documento">Documento</option></select></div>
+        <div class="campo"><label>Dato</label><input id="bl-valor" maxlength="120"></div><div class="campo"><label>Motivo</label><input id="bl-motivo" maxlength="300"></div><button class="btn btn-dorado btn-peq" id="bl-agregar">Bloquear</button></div>
+      <div id="bl-lista" style="margin-top:12px;display:grid;gap:6px"></div></div>
+    <div class="tarjeta"><h3 style="margin-top:0">Registro de auditoría (últimos movimientos)</h3><div class="mini" style="display:grid;gap:4px;max-height:360px;overflow:auto">${audit.slice(0, 100).map(x => `<div>${esc(fechaHora(x.fecha))} · <b>${esc(x.actor)}</b> · ${esc(x.accion)} ${x.solicitudId ? '· ' + esc(x.solicitudId) : ''}${x.a ? ' → ' + esc(x.a) : ''}${x.nota ? ' · ' + esc(x.nota) : ''}</div>`).join('') || 'Sin movimientos.'}</div></div>`;
+  const ESTADOS_REP = {NUEVO: 'Nuevo', EN_REVISION: 'En revisión', RESUELTO: 'Resuelto', DESCARTADO: 'Descartado'};
+  $('#rep-lista', caja).innerHTML = reportes.map(r => `<article class="tarjeta" style="margin:0" data-id="${esc(r.id)}"><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between"><div><b>${esc(r.id)}</b> · ${esc(r.tipo)}${r.referencia ? ' · ' + esc(r.referencia) : ''} <span class="chip ${r.estado === 'NUEVO' ? 'chip-mal' : r.estado === 'RESUELTO' ? 'chip-ok' : ''}">${ESTADOS_REP[r.estado] || esc(r.estado)}</span></div><span class="mini secundario">${esc(fechaHora(r.creado))}</span></div>
+      <p style="white-space:pre-line;margin:8px 0">${esc(r.descripcion)}</p><p class="mini secundario">Reporta: ${esc(r.nombre || 'anónimo')} · ${esc(r.contacto)}</p>
+      <div style="display:grid;gap:8px;grid-template-columns:minmax(150px,200px) 1fr auto;align-items:end"><div class="campo"><label>Estado</label><select data-est>${Object.entries(ESTADOS_REP).map(([k, t]) => `<option value="${k}" ${r.estado === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="campo"><label>Nota interna</label><input data-nota maxlength="500" value="${esc(r.notaAdmin || '')}"></div><button class="btn btn-dorado btn-peq" data-guardar>Guardar</button></div></article>`).join('') || '<div class="nota">No hay reportes.</div>';
+  $('#bl-lista', caja).innerHTML = bloqueos.map(b => `<div style="display:flex;gap:8px;justify-content:space-between;align-items:center" class="mini"><span><b>${esc(b.tipo)}</b> ${esc(b.etiqueta)} · ${esc(b.motivo)} · ${esc(fechaHora(b.creado))}</span><button class="btn btn-sec btn-peq" data-desbloquear="${esc(b.id)}">Quitar</button></div>`).join('') || '<div class="nota">No hay datos bloqueados.</div>';
+  caja.onclick = async e => {
+    const el = e.target.closest('button'); if (!el) return;
+    try {
+      if (el.id === 'cfg-guardar') { const d = {}; $$('[data-cfg]', caja).forEach(i => { d[i.dataset.cfg] = i.value; }); bloquear(el, 'Guardando…'); await llamarAdmin('art_guardarConfig', d); avisar('Porcentajes guardados.', 'ok'); }
+      else if (el.id === 'bl-agregar') { bloquear(el, 'Bloqueando…'); await llamarAdmin('art_bloquear', {tipo: $('#bl-tipo').value, valor: $('#bl-valor').value, motivo: $('#bl-motivo').value}); avisar('Dato bloqueado.', 'ok'); }
+      else if (el.dataset.desbloquear) { if (!confirm('¿Quitar este bloqueo?')) return; bloquear(el, '…'); await llamarAdmin('art_desbloquear', {id: el.dataset.desbloquear}); avisar('Bloqueo retirado.', 'ok'); }
+      else if (el.hasAttribute('data-guardar')) { const tar = el.closest('article'); bloquear(el, 'Guardando…'); await llamarAdmin('art_estadoReporte', {id: tar.dataset.id, estado: $('[data-est]', tar).value, nota: $('[data-nota]', tar).value}); avisar('Reporte actualizado.', 'ok'); }
+      else return;
+      pintarAdmin();
+    } catch (err) { desbloquear(el); avisar(err.message, 'error'); }
   };
 }
 
