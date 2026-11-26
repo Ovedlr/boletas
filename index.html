@@ -552,6 +552,121 @@ td .btn{margin:2px}
   .zona-boletas{margin:0;gap:8mm;grid-template-columns:1fr 1fr}
   .boleta{box-shadow:none;max-width:none}
 }
+/* Portal de artistas · Pipeline de ventas (embudo tipo kanban con scroll horizontal propio) */
+.pipe{font-size:14px}
+.pipe [hidden]{display:none!important}
+.pipe-top{display:flex;gap:12px 16px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pipe-rol{display:flex;gap:6px;flex-wrap:wrap}
+.pipe-rol button{font:700 .95rem var(--f-texto);padding:10px 16px;border-radius:999px;border:1px solid var(--borde-fuerte);background:transparent;color:var(--color-brillo);cursor:pointer}
+.pipe-rol button[aria-pressed="true"]{background:var(--color-principal);border-color:var(--color-principal);color:#000}
+.pipe-steps{display:flex;gap:6px;flex-wrap:wrap;background:rgba(0,0,0,.25);border:1px solid var(--borde);border-radius:999px;padding:4px}
+.pipe-step{display:flex;align-items:center;gap:6px;font:600 13px var(--f-texto);padding:6px 12px;border-radius:999px;color:var(--texto-sec);background:none;border:0;cursor:pointer}
+.pipe-step:hover{color:#fff;background:var(--fondo-elevado-2)}
+.pipe-step:focus-visible{outline:2px solid var(--color-brillo);outline-offset:2px}
+.pipe-step b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.12);font-size:11px}
+.pipe-step.on{background:rgba(250,186,47,.18);color:#fff}
+.pipe-step.on b{background:var(--color-principal);color:var(--color-fondo)}
+.pipe-step .cnt{font-size:10.5px;background:#e5484d;color:#fff;border-radius:999px;padding:1px 6px;margin-left:2px}
+.pipe-intro{margin:10px 0 0;color:var(--texto-sec);max-width:72ch;line-height:1.55}
+.pipe-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.pipe-resumen{margin-left:auto;font-size:13px;color:var(--texto-sec)}
+.pipe-resumen strong{color:var(--color-brillo);font-variant-numeric:tabular-nums}
+.pipe-permiso{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(250,186,47,.08);border:1px solid var(--borde);border-radius:var(--radio-sm);padding:10px 12px;font-size:12.5px;margin-bottom:14px}
+.pipe-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.pipe-head h2{margin:0;font-size:1.15rem}
+.pipe-head .sp{flex:1}
+.pipe-head input{font:400 13px var(--f-texto);padding:9px 12px;min-width:0;border:1px solid var(--borde);border-radius:var(--radio-sm);background:var(--fondo-campo);color:#fff}
+.pipe-scroller{overflow-x:auto;padding-bottom:18px}
+.pipe-board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:10px;min-width:min-content}
+.pipe-col{background:var(--fondo-elevado);border:1px solid var(--borde);border-radius:var(--radio-sm);display:flex;flex-direction:column;min-height:320px;min-width:0}
+.pipe-col.over{outline:2px dashed var(--color-principal);outline-offset:-2px}
+.pipe-col-h{padding:12px 12px 10px;border-bottom:3px solid var(--c)}
+.pipe-col-h .t{font-weight:700;font-size:13.5px;border-radius:4px;padding:2px 4px;margin:-2px -4px;cursor:text;outline:none;color:#fff}
+.pipe-col-h .t:hover{background:var(--fondo-elevado-2)}
+.pipe-col-h .t:focus{background:var(--fondo-campo);box-shadow:0 0 0 2px var(--color-brillo)}
+.pipe-col-h .t::after{content:" ✎";font-weight:400;color:var(--texto-ter);font-size:11px;opacity:0}
+.pipe-col-h .t:hover::after{opacity:1}
+.pipe-col-h .t:focus::after{content:""}
+.pipe-col-h .m{font-size:12px;color:var(--texto-ter);margin-top:4px;font-variant-numeric:tabular-nums}
+.pipe-cards{display:flex;flex-direction:column;gap:8px;padding:10px;flex:1}
+.pipe-card{background:var(--fondo-campo);border:1px solid var(--borde);border-radius:8px;padding:10px 11px;cursor:grab;display:grid;gap:4px;color:#fff}
+.pipe-card:active{cursor:grabbing}
+.pipe-card:focus-visible{outline:2px solid var(--color-brillo);outline-offset:2px}
+.pipe-card .n{font-weight:600;font-size:13px}
+.pipe-card .o{font-size:12px;color:var(--texto-ter)}
+.pipe-card .row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.pipe-card .v{font-size:12.5px;font-weight:700;color:var(--color-brillo);font-variant-numeric:tabular-nums}
+.pipe-card .x{border:0;background:none;color:var(--texto-ter);font-size:16px;line-height:1;padding:2px 4px;border-radius:4px;cursor:pointer}
+.pipe-card .x:hover{color:var(--error)}
+.pipe-card .mv{display:none;font-size:11.5px;border:1px solid var(--borde);background:var(--fondo-elevado);color:#fff;border-radius:6px;padding:3px}
+.pipe-card .mv option{background:var(--color-fondo)}
+@media (hover:none){.pipe-card .mv{display:block}}
+.pipe-temp{display:flex;align-items:center;gap:4px;color:var(--texto-ter)}
+.pipe-temp svg{flex:none;width:12px;height:16px}
+.pipe-temp button{flex:1;border:1px solid var(--borde);background:var(--fondo-elevado);color:var(--texto-ter);font:600 11px var(--f-texto);padding:4px 2px;border-radius:6px;cursor:pointer}
+.pipe-temp button:hover{color:#fff}
+.pipe-temp button.on[data-t="frio"]{background:#5b8fd9;border-color:#5b8fd9;color:#fff}
+.pipe-temp button.on[data-t="medio"]{background:#faba2f;border-color:#faba2f;color:#301638}
+.pipe-temp button.on[data-t="caliente"]{background:#e5484d;border-color:#e5484d;color:#fff}
+.pipe-card[data-temp="frio"]{border-color:#5b8fd9}
+.pipe-card[data-temp="medio"]{border-color:#faba2f}
+.pipe-card[data-temp="caliente"]{border-color:#e5484d}
+.pipe-nbtn{border:0;background:none;color:var(--color-brillo);font:700 11.5px var(--f-texto);padding:2px 0;text-align:left;cursor:pointer}
+.pipe-nprev{font-size:11.5px;color:var(--texto-ter);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-style:italic}
+.pipe-empty{font-size:12px;color:var(--texto-ter);text-align:center;padding:16px 4px;border:1px dashed var(--borde);border-radius:8px}
+.pipe-add{border:0;background:none;color:var(--texto-ter);font:600 12.5px var(--f-texto);padding:8px 12px 12px;text-align:left;cursor:pointer}
+.pipe-add:hover{color:var(--color-brillo)}
+.pipe-rchip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:999px;background:rgba(250,186,47,.15);color:var(--color-brillo);justify-self:start}
+.pipe-rchip.hoy{background:#fff3d1;color:#7a5300}
+.pipe-rchip.vencido{background:#fde2e3;color:#b42318}
+.pipe-rchip svg{width:12px;height:12px}
+.pipe-otro{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--borde-fuerte);color:var(--color-brillo);margin-left:6px;white-space:nowrap}
+.pipe-lnk{font:600 12px var(--f-texto);color:var(--color-brillo);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;margin-right:10px}
+.pipe-lnk.del{color:var(--texto-ter)}
+.pipe-vacio{padding:28px 10px;text-align:center;color:var(--texto-ter);font-size:13px}
+.pipe-filtros{display:flex;gap:6px;flex-wrap:wrap}
+.pipe-filtros button{border:1px solid var(--borde);background:var(--fondo-elevado);color:#fff;border-radius:999px;padding:6px 12px;font:600 12.5px var(--f-texto);cursor:pointer}
+.pipe-filtros button.on{background:var(--color-principal);border-color:var(--color-principal);color:#000}
+.pipe-stats{display:flex;gap:10px;flex-wrap:wrap;padding-bottom:16px}
+.pipe-stat{background:var(--fondo-elevado);border:1px solid var(--borde);border-radius:var(--radio-sm);padding:10px 14px;display:grid;gap:2px;min-width:110px}
+.pipe-stat .k{font-size:11px;color:var(--texto-ter);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.pipe-stat .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.pipe-stat.r .v{color:var(--error)}.pipe-stat.a .v{color:var(--color-brillo)}
+.pipe-grupo{display:grid;gap:8px;padding-bottom:18px}
+.pipe-grupo h3{margin:0;font:700 12px var(--f-texto);letter-spacing:.06em;text-transform:uppercase;color:var(--texto-ter)}
+.pipe-grupo h3 b{color:#fff}
+.pipe-act{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--fondo-elevado);border:1px solid var(--borde);border-radius:var(--radio-sm);padding:10px 12px}
+.pipe-act .info{flex:1 1 220px;min-width:0;display:grid;gap:2px}
+.pipe-act .info .n{font-weight:700;font-size:13.5px}
+.pipe-act .o{font-size:12px;color:var(--texto-ter)}
+.pipe-act .cuando{font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:600}
+.pipe-act.done{opacity:.55}
+.pipe-act.done .n{text-decoration:line-through}
+.pipe-form{display:grid;gap:12px}
+.pipe-form .fs{display:grid;gap:6px;font-size:12px;font-weight:600;color:var(--texto-sec)}
+.pipe-form .pipe-temp button{font-size:12px;padding:6px 2px}
+.pipe-radd,.pipe-nadd{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start}
+.pipe-radd select,.pipe-radd input{flex:1 1 130px;min-width:0}
+.pipe-nadd textarea{flex:1 1 220px;min-width:0;min-height:64px}
+.pipe-rlist,.pipe-nlist{display:grid;gap:6px;max-height:200px;overflow-y:auto}
+.pipe-ritem{display:flex;align-items:center;gap:8px;background:var(--fondo-elevado);border-radius:8px;padding:8px 10px;font-size:12.5px;color:#fff;font-weight:500;flex-wrap:wrap}
+.pipe-ritem.done{opacity:.55;text-decoration:line-through}
+.pipe-ritem .rt{font-weight:700}
+.pipe-ritem .rf{color:var(--texto-ter);font-variant-numeric:tabular-nums}
+.pipe-ritem .sp{flex:1}
+.pipe-ritem a,.pipe-ritem button,.pipe-nitem .f button{font:600 11.5px var(--f-texto);color:var(--color-brillo);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+.pipe-ritem button.del,.pipe-nitem .f button{color:var(--texto-ter)}
+.pipe-nitem{background:var(--fondo-elevado);border-radius:8px;padding:8px 10px;font-size:13px;color:#fff;display:grid;gap:3px;font-weight:400}
+.pipe-nitem .f{font-size:11px;color:var(--texto-ter);display:flex;justify-content:space-between;gap:6px}
+.pipe-nitem p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.pipe-alertas{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;gap:10px;z-index:900;width:min(360px,calc(100vw - 32px))}
+.pipe-alerta{background:var(--color-fondo);border:2px solid #e5484d;border-radius:12px;padding:14px;box-shadow:var(--sombra);display:grid;gap:8px;color:#fff}
+.pipe-alerta .h{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#ff7b7f}
+.pipe-alerta .b{font-size:14px;font-weight:700}
+.pipe-alerta .s{font-size:12.5px;color:var(--texto-ter)}
+.pipe-alerta .acts{display:flex;gap:8px;flex-wrap:wrap}
+.pipe-nota{font-size:12px;color:var(--texto-ter);padding-block:14px 4px}
+@media (prefers-reduced-motion:no-preference){.pipe-card{transition:box-shadow .15s,border-color .15s}.pipe-card:hover{box-shadow:0 6px 18px -8px rgba(250,186,47,.45)}.pipe-alerta{animation:pipeSube .25s ease-out}@keyframes pipeSube{from{transform:translateY(10px);opacity:.4}to{transform:none;opacity:1}}}
 </style>
 </head>
 <body>
@@ -944,6 +1059,17 @@ const ApiDemo = (() => {
         case 'enlacesInscripciones': return {hoja: '', excel: '', carpeta: ''};
         case 'baseCompleta': return JSON.parse(JSON.stringify(db));
         case 'reiniciarDemo': db = semilla(); guardar(); return true;
+        case 'crm_datos': { db.crm = db.crm || {contactos: [], tratos: [], etapas: {}}; return JSON.parse(JSON.stringify(db.crm)); }
+        case 'crm_guardarTrato': case 'crm_guardarContacto': {
+          db.crm = db.crm || {contactos: [], tratos: [], etapas: {}};
+          const lista = accion === 'crm_guardarTrato' ? db.crm.tratos : db.crm.contactos, o = JSON.parse(JSON.stringify(d.trato || d.contacto));
+          if (!o.id) o.id = (accion === 'crm_guardarTrato' ? 'PT-' : 'PC-') + azar(6, 'ABCDEFGHJKMNPQRSTUVWXYZ23456789');
+          const i = lista.findIndex(x => x.id === o.id); if (i >= 0) lista[i] = Object.assign({}, lista[i], o); else lista.push(o);
+          guardar(); return o;
+        }
+        case 'crm_borrarTrato': case 'crm_borrarContacto': { db.crm = db.crm || {contactos: [], tratos: [], etapas: {}}; const k = accion === 'crm_borrarTrato' ? 'tratos' : 'contactos'; db.crm[k] = db.crm[k].filter(x => x.id !== d.id); guardar(); return {ok: true}; }
+        case 'crm_etapas': { db.crm = db.crm || {contactos: [], tratos: [], etapas: {}}; db.crm.etapas[d.rol] = d.etapas; guardar(); return {ok: true}; }
+        case 'crm_importar': return {contactos: 0, tratos: 0};
         default: fallo('Acción no disponible.');
       }
     }
@@ -1799,7 +1925,7 @@ const SECCIONES_ADMIN = {
   web: {titulo: 'Página web', pestanas: [['comentarios', 'Comentarios y reseñas'], ['blog', 'Blog']]},
   emisora: {titulo: 'Barakah Radio', pestanas: [['emisora', 'Panel de la emisora'], ['transmitir', 'Transmitir en vivo (RadioBOSS)']]},
   cues: {titulo: 'Cues · Estudio', pestanas: [['cuesvideos', 'Videos de estudio'], ['cuesestudiantes', 'Estudiantes'], ['cuesrevision', 'Revisión de entregas']]},
-  artistas: {titulo: 'Portal de artistas', pestanas: [['artistas', 'Artistas registrados'], ['artsolicitudes', 'Solicitudes y pagos'], ['artseguridad', 'Seguridad']]}
+  artistas: {titulo: 'Portal de artistas', pestanas: [['artistas', 'Artistas registrados'], ['artsolicitudes', 'Solicitudes y pagos'], ['artpipeline', 'Pipeline de ventas'], ['artseguridad', 'Seguridad']]}
 };
 const seccionGuardada = () => { try { const k = sessionStorage.getItem('barakah_seccion'); return SECCIONES_ADMIN[k] ? k : 'eventos'; } catch (e) { return 'eventos'; } };
 let ADMIN = {seccion: seccionGuardada(), pestana: SECCIONES_ADMIN[seccionGuardada()].pestanas[0][0], eventos: [], eventoSel: '', editar: null};
@@ -1859,7 +1985,7 @@ async function pintarAdmin() {
     if (ADMIN.seccion === 'inscripciones') { await ({inscripciones: adminInscripciones, semillas: adminSemillas}[ADMIN.pestana] || adminInscripciones)(caja); return; }
     if (ADMIN.seccion === 'web') { await ({comentarios: adminComentarios, blog: adminBlog}[ADMIN.pestana] || adminComentarios)(caja); return; }
     if (ADMIN.seccion === 'cues') { await ({cuesvideos: adminCuesVideos, cuesestudiantes: adminCuesEstudiantes, cuesrevision: adminCuesRevision}[ADMIN.pestana] || adminCuesVideos)(caja); return; }
-    if (ADMIN.seccion === 'artistas') { await ({artistas: adminArtistas, artsolicitudes: adminArtSolicitudes, artseguridad: adminArtSeguridad}[ADMIN.pestana] || adminArtistas)(caja); return; }
+    if (ADMIN.seccion === 'artistas') { await ({artistas: adminArtistas, artsolicitudes: adminArtSolicitudes, artpipeline: adminArtPipeline, artseguridad: adminArtSeguridad}[ADMIN.pestana] || adminArtistas)(caja); return; }
     if (ADMIN.seccion === 'emisora') { await ({emisora: adminEmisora, transmitir: adminTransmitir}[ADMIN.pestana] || adminEmisora)(caja); return; }
     ADMIN.eventos = (await llamarAdmin('eventos')).sort((a, b) => momentoEvento(b) - momentoEvento(a));
     if (!ADMIN.eventoSel || !ADMIN.eventos.find(e => e.id === ADMIN.eventoSel)) {
@@ -2589,6 +2715,347 @@ async function adminArtSeguridad(caja) {
       pintarAdmin();
     } catch (err) { desbloquear(el); avisar(err.message, 'error'); }
   };
+}
+
+/* ---------- Portal de artistas · Pipeline de ventas (compradores y artistas vendedores) ----------
+   Datos: pestañas "Pipeline Contactos" y "Pipeline Tratos" del libro "Portal de Artistas Barakah"; nombres de etapas en PIPE_ETAPAS.
+   Acciones del servidor: admin_crm_* (archivo servidor/Pipeline.gs del repo barakahco). */
+const PIPE = {rol: 'COMPRADOR', vista: 'embudo', filtro: 'todas', buscar: '', datos: null, audio: null, alertasOn: false};
+const PIPE_LISTAS = {
+  COMPRADOR: {t: 'Compradores', otro: 'También es artista', org: 'Cliente / empresa', orgPh: 'Ej. Hotel Las Palmas', tratoPh: 'Ej. Show de danza árabe para boda', contOrg: 'Empresa', contOrgPh: 'Ej. Hotel Las Palmas'},
+  ARTISTA: {t: 'Artistas vendedores', otro: 'También es comprador', org: 'Artista o agrupación', orgPh: 'Ej. Compañía Luna Danza', tratoPh: 'Ej. Vinculación al portal', contOrg: 'Nombre artístico', contOrgPh: 'Ej. Compañía Luna Danza'}
+};
+const PIPE_ETAPAS_BASE = {
+  COMPRADOR: [['nuevo', 'Nuevo interesado'], ['contacto', 'Contacto establecido'], ['calificado', 'Necesidad definida'], ['reunion', 'Propuesta enviada'], ['negociacion', 'Negociación'], ['contrato', 'Contratado']],
+  ARTISTA: [['nuevo', 'Prospecto'], ['contacto', 'Contacto establecido'], ['calificado', 'Registrado en el portal'], ['reunion', 'Perfil revisado'], ['negociacion', 'Condiciones acordadas'], ['contrato', 'Publicado en la vitrina']]
+};
+const PIPE_COLORES = ['#9a7aa6', '#fecb4a', '#faba2f', '#e39a2d', '#c98a12', '#86e3ae'];
+const PIPE_TEMPS = [{id: 'frio', t: 'Frío'}, {id: 'medio', t: 'Medio'}, {id: 'caliente', t: 'Caliente'}];
+const PIPE_TERMO = `<svg viewBox="0 0 12 16" aria-hidden="true"><path d="M4 2.5a2 2 0 0 1 4 0v7.2a3.5 3.5 0 1 1-4 0z" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="6" cy="12.3" r="1.6" fill="currentColor"/></svg>`;
+const PIPE_RTIPOS = {llamar: 'Llamar', correo: 'Enviar correo', whatsapp: 'Enviar WhatsApp'};
+const PIPE_RICON = {
+  llamar: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h3l1.2 3-1.7 1.1a8 8 0 0 0 4.4 4.4L11 8.8 14 10v3a1 1 0 0 1-1 1A11 11 0 0 1 2 3a1 1 0 0 1 1-1z" fill="currentColor"/></svg>`,
+  correo: `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 4.5l6 4.5 6-4.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`,
+  whatsapp: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 0 0-5.6 9.8L1.5 14.5l3.3-.9A6.5 6.5 0 1 0 8 1.5z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.6 5.2c.2-.4.6-.4.8 0l.5 1.1c.1.3 0 .5-.2.7l-.3.3c.4.9 1.1 1.6 2 2l.3-.3c.2-.2.5-.3.7-.2l1.1.5c.4.2.4.6 0 .8-.6.5-1.4.6-2.1.3a5.5 5.5 0 0 1-3-3c-.3-.8-.2-1.6.2-2.2z" fill="currentColor"/></svg>`
+};
+const PIPE_INTRO = {
+  embudo: 'Cada tarjeta es un trato en curso: arrástrala a la siguiente etapa cuando avance. Haz clic en el nombre de una etapa para cambiarlo.',
+  contactos: 'Personas y empresas con las que tienes tratos. Un contacto se une a sus tratos por el nombre de la empresa o del artista; desde aquí puedes escribirle por WhatsApp o crearle un trato.',
+  actividades: 'Llamadas, correos y mensajes de WhatsApp pendientes, ordenados por fecha. Las vencidas y las de hoy van primero.'
+};
+const pipeCop = n => 'COP ' + Math.round(Number(n) || 0).toLocaleString('es-CO');
+const pipeNorm = s => String(s || '').trim().toLowerCase();
+const pipeWa = tel => { let d = String(tel || '').replace(/\D/g, ''); if (d.length === 10) d = '57' + d; return d; };
+const pipeFecha = s => { try { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleString('es-CO', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'}); } catch (e) { return ''; } };
+const pipeTempBtns = cur => PIPE_TERMO + PIPE_TEMPS.map(x => `<button type="button" data-t="${x.id}" class="${cur === x.id ? 'on' : ''}" aria-pressed="${cur === x.id}">${x.t}</button>`).join('');
+function pipeEstadoRec(r) { const d = new Date(r.f); if (isNaN(d)) return ''; if (d <= new Date()) return 'vencido'; if (d.toDateString() === new Date().toDateString()) return 'hoy'; return ''; }
+function pipeGcal(r, t) {
+  const d = new Date(r.f), fin = new Date(d.getTime() + 30 * 60000), p = x => String(x).padStart(2, '0');
+  const f = x => `${x.getFullYear()}${p(x.getMonth() + 1)}${p(x.getDate())}T${p(x.getHours())}${p(x.getMinutes())}00`;
+  const q = new URLSearchParams({action: 'TEMPLATE', text: `${PIPE_RTIPOS[r.tipo]}: ${t.n}`, dates: `${f(d)}/${f(fin)}`, details: `Trato: ${t.n}\n${PIPE_LISTAS[t.rol || PIPE.rol].org}: ${t.o || '-'}\nPipeline · Portal de los artistas Barakah`});
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+}
+const pipeEtapas = (rol = PIPE.rol) => { const g = (PIPE.datos.etapas || {})[rol] || {}; return PIPE_ETAPAS_BASE[rol].map(([id, t], i) => ({id, t: g[id] || t, c: PIPE_COLORES[i]})); };
+const pipeTratos = () => PIPE.datos.tratos.filter(t => t.rol === PIPE.rol);
+const pipeContactos = () => PIPE.datos.contactos.filter(c => c.rol === PIPE.rol);
+const pipeTratosDe = c => pipeTratos().filter(t => { const k = pipeNorm(c.org || c.nom); return k && pipeNorm(t.o) === k; });
+const pipeContactoDe = t => pipeContactos().find(c => pipeNorm(c.org || c.nom) === pipeNorm(t.o));
+/** Misma persona en la otra lista: coincide el correo o el celular. */
+function pipeEnOtraLista(c) {
+  const mail = pipeNorm(c.mail), tel = String(c.tel || '').replace(/\D/g, '').slice(-10);
+  return PIPE.datos.contactos.some(x => x.rol !== c.rol && ((mail && pipeNorm(x.mail) === mail) || (tel.length >= 7 && String(x.tel || '').replace(/\D/g, '').slice(-10) === tel)));
+}
+function pipeReemplazar(lista, obj) { const i = PIPE.datos[lista].findIndex(x => x.id === obj.id); if (i >= 0) PIPE.datos[lista][i] = obj; else PIPE.datos[lista].push(obj); }
+async function pipeGuardarTrato(t) {
+  try { const r = await llamarAdmin('crm_guardarTrato', {trato: t}); pipeReemplazar('tratos', r); return r; }
+  catch (err) { avisar(err.message, 'error'); await pipeRecargar(); throw err; }
+}
+async function pipeRecargar() { try { PIPE.datos = await llamarAdmin('crm_datos'); } catch (e) {} pipeRender(); }
+
+async function adminArtPipeline(caja) {
+  PIPE.datos = await llamarAdmin('crm_datos');
+  caja.innerHTML = `<div class="pipe">
+    <div class="pipe-top">
+      <div class="pipe-rol" role="group" aria-label="Lista">${Object.entries(PIPE_LISTAS).map(([k, l]) => `<button type="button" data-rol="${k}" aria-pressed="${PIPE.rol === k}">${l.t}</button>`).join('')}</div>
+      <nav class="pipe-steps" aria-label="Vistas del pipeline">
+        <button class="pipe-step" type="button" data-v="embudo"><b>1</b>Embudo</button>
+        <button class="pipe-step" type="button" data-v="contactos"><b>2</b>Contactos</button>
+        <button class="pipe-step" type="button" data-v="actividades"><b>3</b>Actividades<span class="cnt" id="pipe-cnt" hidden></span></button>
+      </nav>
+    </div>
+    <p class="pipe-intro" id="pipe-intro"></p>
+    <div class="pipe-bar" id="pipe-bar">
+      <button class="btn btn-peq" id="pipe-nuevo" type="button">+ Nuevo trato</button>
+      <button class="btn btn-sec btn-peq" id="pipe-importar" type="button">Traer del portal</button>
+      <button class="btn btn-sec btn-peq" id="pipe-hoja" type="button">Abrir la hoja</button>
+      <div class="pipe-resumen" id="pipe-resumen"></div>
+    </div>
+    <div class="pipe-permiso" id="pipe-permiso" ${PIPE.alertasOn ? 'hidden' : ''}><span>Activa el sonido para que los recordatorios suenen a su hora mientras el panel esté abierto.</span><button class="btn btn-peq" type="button" id="pipe-sonido">Activar alertas</button></div>
+    <section id="pipe-v-embudo"><div class="pipe-scroller"><div class="pipe-board" id="pipe-board"></div></div></section>
+    <section id="pipe-v-contactos" hidden>
+      <div class="pipe-head"><h2>Contactos</h2><button class="btn btn-peq" type="button" id="pipe-ncontacto">+ Nuevo contacto</button><span class="sp"></span>
+        <input id="pipe-buscar" type="search" placeholder="Buscar nombre, empresa o teléfono" aria-label="Buscar contacto" value="${esc(PIPE.buscar)}"></div>
+      <div class="tabla-marco"><table><thead><tr><th>Nombre</th><th id="pipe-th-org">Empresa</th><th>WhatsApp / celular</th><th>Correo</th><th>Tratos</th><th>Valor en embudo</th><th>Acciones</th></tr></thead><tbody id="pipe-tabla"></tbody></table></div>
+    </section>
+    <section id="pipe-v-actividades" hidden>
+      <div class="pipe-head"><h2>Actividades</h2><button class="btn btn-peq" type="button" id="pipe-nactividad">+ Nueva actividad</button><span class="sp"></span>
+        <div class="pipe-filtros" id="pipe-filtros" role="group" aria-label="Filtrar por tipo">${[['todas', 'Todas'], ['llamar', 'Llamar'], ['correo', 'Correo'], ['whatsapp', 'WhatsApp']].map(([k, t]) => `<button type="button" data-f="${k}" class="${PIPE.filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>
+      <div class="pipe-stats" id="pipe-stats"></div><div id="pipe-lista"></div>
+    </section>
+    <p class="pipe-nota">Los cambios se guardan en la hoja del Portal de los artistas. Las alertas suenan mientras el panel esté abierto; para recibirlas en el celular usa "Agregar a Google Calendar" en cada recordatorio.</p>
+    <div class="pipe-alertas" id="pipe-alertas" aria-live="assertive"></div>
+  </div>`;
+  $$('[data-rol]', caja).forEach(b => b.addEventListener('click', () => { PIPE.rol = b.dataset.rol; $$('[data-rol]', caja).forEach(x => x.setAttribute('aria-pressed', x === b)); pipeRender(); }));
+  $$('.pipe-step', caja).forEach(b => b.addEventListener('click', () => pipeIrVista(b.dataset.v)));
+  $('#pipe-nuevo', caja).addEventListener('click', () => pipeAbrirTrato());
+  $('#pipe-ncontacto', caja).addEventListener('click', () => pipeAbrirContacto());
+  $('#pipe-nactividad', caja).addEventListener('click', () => pipeAbrirActividad());
+  $('#pipe-buscar', caja).addEventListener('input', e => { PIPE.buscar = e.target.value; pipeRenderContactos(); });
+  $$('#pipe-filtros button', caja).forEach(b => b.addEventListener('click', () => { PIPE.filtro = b.dataset.f; $$('#pipe-filtros button', caja).forEach(x => x.classList.toggle('on', x === b)); pipeRenderActividades(); }));
+  $('#pipe-sonido', caja).addEventListener('click', () => {
+    try { PIPE.audio = PIPE.audio || new (window.AudioContext || window.webkitAudioContext)(); PIPE.audio.resume(); pipePitido(); } catch (e) {}
+    try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission().catch(() => {}); } catch (e) {}
+    PIPE.alertasOn = true; $('#pipe-permiso', caja).hidden = true; avisar('Alertas activadas. Mantén el panel abierto para que suenen.', 'ok');
+  });
+  $('#pipe-importar', caja).addEventListener('click', async e => {
+    const txt = PIPE.rol === 'ARTISTA' ? 'Se agregan como contactos los artistas registrados en el portal que aún no estén en esta lista.' : 'Se agregan como contactos los clientes de las solicitudes de contratación, y cada solicitud como un trato. No se duplica lo que ya esté.';
+    if (!confirm(txt + '\n\n¿Continuar?')) return;
+    const b = e.currentTarget; bloquear(b, 'Trayendo…');
+    try { const r = await llamarAdmin('crm_importar', {rol: PIPE.rol}); avisar(`Listo: ${r.contactos} contacto(s) y ${r.tratos} trato(s) nuevos.`, 'ok'); await pipeRecargar(); }
+    catch (err) { avisar(err.message, 'error'); } finally { desbloquear(b); }
+  });
+  $('#pipe-hoja', caja).addEventListener('click', async e => {
+    const w = window.open('', '_blank'); const b = e.currentTarget; bloquear(b, 'Abriendo…');
+    try { const r = await llamarAdmin('art_libro'); if (w) { w.opener = null; w.location = r.url; } else window.open(r.url, '_blank', 'noopener'); }
+    catch (err) { if (w) w.close(); avisar(err.message, 'error'); } finally { desbloquear(b); }
+  });
+  pipeIrVista(PIPE.vista);
+  pipeRevisar();
+  temporizadores.push(setInterval(() => { if (!$('#pipe-board')) return; pipeRevisar(); if (new Date().getSeconds() < 20) pipeRender(); }, 15000));
+}
+function pipeIrVista(v) {
+  if (!PIPE_INTRO[v]) v = 'embudo';
+  PIPE.vista = v;
+  $$('.pipe-step').forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  ['embudo', 'contactos', 'actividades'].forEach(k => { $('#pipe-v-' + k).hidden = k !== v; });
+  $('#pipe-bar').hidden = v !== 'embudo';
+  $('#pipe-intro').textContent = PIPE_INTRO[v];
+  pipeRender();
+}
+function pipeRender() {
+  const board = $('#pipe-board'); if (!board) return;
+  const etapas = pipeEtapas(), tratos = pipeTratos();
+  board.innerHTML = '';
+  etapas.forEach(s => {
+    const items = tratos.filter(t => t.e === s.id), tot = items.reduce((a, t) => a + (+t.v || 0), 0);
+    const col = document.createElement('div');
+    col.className = 'pipe-col'; col.style.setProperty('--c', s.c); col.dataset.e = s.id;
+    col.innerHTML = `<div class="pipe-col-h"><div class="t" contenteditable="true" spellcheck="false" title="Clic para editar el nombre de la etapa" aria-label="Nombre de la etapa">${esc(s.t)}</div><div class="m">${pipeCop(tot)} · ${items.length} ${items.length === 1 ? 'trato' : 'tratos'}</div></div><div class="pipe-cards"></div><button class="pipe-add" type="button">+ Agregar trato</button>`;
+    const cards = $('.pipe-cards', col);
+    if (!items.length) cards.innerHTML = '<div class="pipe-empty">Arrastra un trato aquí</div>';
+    items.forEach(t => {
+      const c = document.createElement('div');
+      c.className = 'pipe-card'; c.draggable = true; c.tabIndex = 0; c.dataset.id = t.id;
+      if (t.temp) c.dataset.temp = t.temp;
+      const ns = Array.isArray(t.notas) ? t.notas : [], ult = ns[ns.length - 1], pend = (t.rec || []).filter(r => !r.hecho);
+      const pr = pend.slice().sort((a, b) => new Date(a.f) - new Date(b.f))[0], ep = pr ? pipeEstadoRec(pr) : '';
+      c.innerHTML = `<div class="row"><div class="n">${esc(t.n)}</div><button class="x" type="button" aria-label="Eliminar trato">×</button></div><div class="o">${esc(t.o)}</div>
+        <div class="row"><div class="v">${pipeCop(t.v)}</div><select class="mv" aria-label="Mover a etapa">${etapas.map(x => `<option value="${x.id}"${x.id === t.e ? ' selected' : ''}>${esc(x.t)}</option>`).join('')}</select></div>
+        <div class="pipe-temp" aria-label="Temperatura">${pipeTempBtns(t.temp)}</div>
+        ${pr ? `<span class="pipe-rchip ${ep}">${PIPE_RICON[pr.tipo] || ''}${PIPE_RTIPOS[pr.tipo]} · ${ep === 'vencido' ? 'vencido ' : ''}${pipeFecha(pr.f)}</span>` : ''}
+        ${ult ? `<div class="pipe-nprev">${esc(ult.x)}</div>` : ''}
+        <div class="row" style="justify-content:flex-start;gap:14px"><button class="pipe-nbtn" type="button" data-nota>${ns.length ? `Notas (${ns.length})` : '+ Agregar nota'}</button><button class="pipe-nbtn" type="button" data-rec>${pend.length ? `Recordatorios (${pend.length})` : '+ Recordatorio'}</button></div>`;
+      c.addEventListener('dragstart', ev => ev.dataTransfer.setData('text/plain', t.id));
+      $('.x', c).onclick = async ev => { ev.stopPropagation(); if (!confirm(`¿Eliminar el trato "${t.n}"? Se borra de la hoja.`)) return;
+        PIPE.datos.tratos = PIPE.datos.tratos.filter(z => z.id !== t.id); pipeRender();
+        try { await llamarAdmin('crm_borrarTrato', {id: t.id}); } catch (err) { avisar(err.message, 'error'); pipeRecargar(); } };
+      $('.mv', c).onchange = ev => pipeMover(t, ev.target.value);
+      $('.mv', c).onclick = ev => ev.stopPropagation();
+      $$('.pipe-temp button', c).forEach(b => b.onclick = ev => { ev.stopPropagation(); t.temp = t.temp === b.dataset.t ? '' : b.dataset.t; pipeRender(); pipeGuardarTrato(t).catch(() => {}); });
+      $('[data-nota]', c).onclick = ev => { ev.stopPropagation(); pipeAbrirTrato(t.e, t, 'nota'); };
+      $('[data-rec]', c).onclick = ev => { ev.stopPropagation(); pipeAbrirTrato(t.e, t, 'rec'); };
+      c.addEventListener('click', () => pipeAbrirTrato(t.e, t));
+      c.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target === c) pipeAbrirTrato(t.e, t); });
+      cards.appendChild(c);
+    });
+    col.addEventListener('dragover', ev => { ev.preventDefault(); col.classList.add('over'); });
+    col.addEventListener('dragleave', () => col.classList.remove('over'));
+    col.addEventListener('drop', ev => { ev.preventDefault(); col.classList.remove('over'); const t = PIPE.datos.tratos.find(z => z.id === ev.dataTransfer.getData('text/plain')); if (t && t.e !== s.id) pipeMover(t, s.id); });
+    $('.pipe-add', col).onclick = () => pipeAbrirTrato(s.id);
+    const tt = $('.t', col);
+    tt.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); tt.blur(); } if (ev.key === 'Escape') { tt.textContent = s.t; tt.blur(); } });
+    tt.addEventListener('blur', async () => {
+      const v = tt.textContent.trim();
+      if (!v || v === s.t) { tt.textContent = s.t; return; }
+      const e = Object.fromEntries(pipeEtapas().map(x => [x.id, x.id === s.id ? v : x.t]));
+      PIPE.datos.etapas[PIPE.rol] = e; pipeRender();
+      try { await llamarAdmin('crm_etapas', {rol: PIPE.rol, etapas: e}); } catch (err) { avisar(err.message, 'error'); pipeRecargar(); }
+    });
+    board.appendChild(col);
+  });
+  const total = tratos.reduce((a, t) => a + (+t.v || 0), 0);
+  $('#pipe-resumen').innerHTML = `<strong>${tratos.length}</strong> tratos · <strong>${pipeCop(total)}</strong> en el embudo`;
+  $('#pipe-th-org').textContent = PIPE_LISTAS[PIPE.rol].contOrg;
+  pipeRenderContactos(); pipeRenderActividades();
+}
+function pipeMover(t, etapa) { t.e = etapa; pipeRender(); pipeGuardarTrato(t).catch(() => {}); }
+
+/* Trato: datos, temperatura, recordatorios y notas */
+function pipeAbrirTrato(etapa, t, foco) {
+  const L = PIPE_LISTAS[t ? t.rol : PIPE.rol], etapas = pipeEtapas(t ? t.rol : PIPE.rol);
+  let dTemp = t ? (t.temp || '') : '', dNotas = t && Array.isArray(t.notas) ? t.notas.map(n => ({...n})) : [], dRecs = t && Array.isArray(t.rec) ? t.rec.map(r => ({...r})) : [];
+  const orgs = [...new Set([...pipeTratos().map(x => x.o), ...pipeContactos().map(c => c.org || c.nom)].filter(Boolean))];
+  const {caja, cerrar} = abrirModal(`<h2 style="margin:0 0 12px;font-size:1.3rem">${t ? 'Editar trato' : 'Nuevo trato'} · ${esc(L.t.toLowerCase())}</h2>
+    <form class="pipe-form" novalidate>
+      ${t && t.solicitudId ? `<span class="chip">Solicitud ${esc(t.solicitudId)}</span>` : ''}
+      <div class="campo"><label for="pt-n">Nombre del trato</label><input id="pt-n" required placeholder="${esc(L.tratoPh)}" value="${esc(t ? t.n : '')}"></div>
+      <div class="campo"><label for="pt-o">${esc(L.org)}</label><input id="pt-o" list="pt-orgs" placeholder="${esc(L.orgPh)}" value="${esc(t ? t.o : '')}"><datalist id="pt-orgs">${orgs.map(o => `<option value="${esc(o)}"></option>`).join('')}</datalist></div>
+      <div class="campo"><label for="pt-v">Valor (COP)</label><input id="pt-v" type="number" min="0" step="1000" placeholder="0" value="${t && t.v ? t.v : ''}"></div>
+      <div class="campo"><label for="pt-e">Etapa</label><select id="pt-e">${etapas.map(s => `<option value="${s.id}"${s.id === (etapa || 'nuevo') ? ' selected' : ''}>${esc(s.t)}</option>`).join('')}</select></div>
+      <div class="fs">Temperatura del trato<div class="pipe-temp" id="pt-temp" role="group" aria-label="Temperatura del trato"></div></div>
+      <div class="fs">Recordatorios<div class="pipe-rlist" id="pt-recs"></div>
+        <div class="pipe-radd"><select id="pt-rtipo" aria-label="Tipo de recordatorio">${Object.entries(PIPE_RTIPOS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select><input id="pt-rfecha" type="datetime-local" aria-label="Fecha y hora del recordatorio"><button class="btn btn-sec btn-peq" type="button" id="pt-radd">Agregar</button></div></div>
+      <div class="fs">Notas<div class="pipe-nlist" id="pt-notas"></div>
+        <div class="pipe-nadd"><textarea id="pt-nota" placeholder="Escribe una nota: llamada, acuerdo, próximo paso…"></textarea><button class="btn btn-sec btn-peq" type="button" id="pt-nadd">Agregar</button></div></div>
+      <div class="acciones" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" data-cerrar>Cancelar</button><button class="btn btn-peq" type="submit">Guardar trato</button></div>
+    </form>`, {ancho: true});
+  const q = s => $(s, caja), rFecha = q('#pt-rfecha'), fNota = q('#pt-nota');
+  const pintaTemp = () => { q('#pt-temp').innerHTML = pipeTempBtns(dTemp); $$('#pt-temp button', caja).forEach(b => b.onclick = () => { dTemp = dTemp === b.dataset.t ? '' : b.dataset.t; pintaTemp(); }); };
+  const pintaNotas = () => {
+    q('#pt-notas').innerHTML = dNotas.length ? dNotas.map((n, i) => `<div class="pipe-nitem"><div class="f"><span>${pipeFecha(n.f)}</span><button type="button" data-i="${i}">Borrar</button></div><p>${esc(n.x)}</p></div>`).reverse().join('') : '<div class="pipe-nitem" style="color:var(--texto-ter)">Aún no hay notas en este trato.</div>';
+    $$('#pt-notas [data-i]', caja).forEach(b => b.onclick = () => { dNotas.splice(+b.dataset.i, 1); pintaNotas(); });
+  };
+  const pintaRecs = () => {
+    const tmp = {n: q('#pt-n').value || 'Trato', o: q('#pt-o').value, rol: t ? t.rol : PIPE.rol};
+    const orden = dRecs.map((r, i) => ({r, i})).sort((a, b) => new Date(a.r.f) - new Date(b.r.f));
+    q('#pt-recs').innerHTML = orden.length ? orden.map(({r, i}) => `<div class="pipe-ritem ${r.hecho ? 'done' : ''}"><span class="pipe-rchip ${r.hecho ? '' : pipeEstadoRec(r)}">${PIPE_RICON[r.tipo] || ''}<span class="rt">${PIPE_RTIPOS[r.tipo]}</span></span><span class="rf">${pipeFecha(r.f)}</span><span class="sp"></span><a href="${esc(pipeGcal(r, tmp))}" target="_blank" rel="noopener">Agregar a Google Calendar</a><button type="button" data-h="${i}">${r.hecho ? 'Reabrir' : 'Hecho'}</button><button type="button" class="del" data-d="${i}">Borrar</button></div>`).join('') : '<div class="pipe-ritem" style="color:var(--texto-ter)">Sin recordatorios. Elige el tipo, la fecha y la hora.</div>';
+    $$('#pt-recs [data-h]', caja).forEach(b => b.onclick = () => { const r = dRecs[+b.dataset.h]; r.hecho = !r.hecho; pintaRecs(); });
+    $$('#pt-recs [data-d]', caja).forEach(b => b.onclick = () => { dRecs.splice(+b.dataset.d, 1); pintaRecs(); });
+  };
+  const agregarRec = () => { if (!rFecha.value) { rFecha.focus(); return; } dRecs.push({id: String(Date.now()), tipo: q('#pt-rtipo').value, f: rFecha.value, hecho: false, avisado: false}); rFecha.value = ''; pintaRecs(); };
+  const agregarNota = () => { const x = fNota.value.trim(); if (!x) return; dNotas.push({f: new Date().toISOString(), x}); fNota.value = ''; pintaNotas(); fNota.focus(); };
+  q('#pt-radd').onclick = agregarRec; q('#pt-nadd').onclick = agregarNota;
+  fNota.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); agregarNota(); } });
+  pintaTemp(); pintaNotas(); pintaRecs();
+  setTimeout(() => (foco === 'rec' ? q('#pt-rtipo') : foco ? fNota : q('#pt-n')).focus(), 40);
+  q('form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    if (!q('#pt-n').value.trim()) { avisar('Escribe el nombre del trato.', 'error'); q('#pt-n').focus(); return; }
+    if (fNota.value.trim()) agregarNota();
+    if (rFecha.value) agregarRec();
+    dRecs.forEach(r => { if (new Date(r.f) > new Date()) r.avisado = false; });
+    const d = {id: t ? t.id : '', rol: t ? t.rol : PIPE.rol, n: q('#pt-n').value.trim(), o: q('#pt-o').value.trim(), v: +q('#pt-v').value || 0, e: q('#pt-e').value, temp: dTemp, notas: dNotas, rec: dRecs};
+    const b = $('[type=submit]', caja); bloquear(b, 'Guardando…');
+    try { await pipeGuardarTrato(d); cerrar(); pipeRender(); pipeRevisar(); } catch (err) { desbloquear(b); }
+  });
+}
+
+/* Alertas de recordatorios */
+function pipePitido() {
+  const a = PIPE.audio; if (!a) return;
+  try { [0, .35, .7].forEach(s => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; o.connect(g); g.connect(a.destination); const t0 = a.currentTime + s; g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(.3, t0 + .02); g.gain.exponentialRampToValueAtTime(.0001, t0 + .25); o.start(t0); o.stop(t0 + .3); }); } catch (e) {}
+}
+function pipeAlerta(t, r) {
+  const cont = $('#pipe-alertas'); if (!cont) return;
+  const el = document.createElement('div'); el.className = 'pipe-alerta'; el.setAttribute('role', 'alert');
+  el.innerHTML = `<div class="h">Recordatorio · ${PIPE_LISTAS[t.rol].t} · ${pipeFecha(r.f)}</div><div class="b">${PIPE_RTIPOS[r.tipo]}: ${esc(t.n)}</div><div class="s">${esc(t.o || '')}</div>
+    <div class="acts"><button class="btn btn-peq" type="button" data-a="hecho">Marcar hecho</button><button class="btn btn-sec btn-peq" type="button" data-a="pos">Posponer 10 min</button><button class="btn btn-sec btn-peq" type="button" data-a="ver">Ver trato</button></div>`;
+  $('[data-a="hecho"]', el).onclick = () => { r.hecho = true; el.remove(); pipeRender(); pipeGuardarTrato(t).catch(() => {}); };
+  $('[data-a="pos"]', el).onclick = () => { const d = new Date(Date.now() + 10 * 60000), p = x => String(x).padStart(2, '0'); r.f = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; r.avisado = false; el.remove(); pipeRender(); pipeGuardarTrato(t).catch(() => {}); };
+  $('[data-a="ver"]', el).onclick = () => { el.remove(); if (PIPE.rol !== t.rol) { PIPE.rol = t.rol; $$('[data-rol]').forEach(x => x.setAttribute('aria-pressed', x.dataset.rol === t.rol)); pipeRender(); } pipeAbrirTrato(t.e, t); };
+  cont.appendChild(el); pipePitido();
+  try { if (window.Notification && Notification.permission === 'granted') new Notification(`${PIPE_RTIPOS[r.tipo]}: ${t.n}`, {body: t.o || ''}); } catch (e) {}
+}
+function pipeRevisar() {
+  if (!PIPE.datos) return;
+  PIPE.datos.tratos.forEach(t => {
+    let cambio = false;
+    (t.rec || []).forEach(r => { if (!r.hecho && !r.avisado && new Date(r.f) <= new Date()) { r.avisado = true; cambio = true; pipeAlerta(t, r); } });
+    if (cambio) pipeGuardarTrato(t).catch(() => {});
+  });
+}
+
+/* Contactos */
+function pipeAbrirContacto(c) {
+  const L = PIPE_LISTAS[c ? c.rol : PIPE.rol];
+  const {caja, cerrar} = abrirModal(`<h2 style="margin:0 0 12px;font-size:1.3rem">${c ? 'Editar contacto' : 'Nuevo contacto'} · ${esc(L.t.toLowerCase())}</h2>
+    <form class="pipe-form" novalidate>
+      ${c && c.origen && c.origen !== 'Panel' ? `<span class="chip">Origen: ${esc(c.origen)}</span>` : ''}
+      <div class="campo"><label for="pc-nom">Nombre</label><input id="pc-nom" required placeholder="Ej. Laura Gómez" value="${esc(c ? c.nom : '')}"></div>
+      <div class="campo"><label for="pc-org">${esc(L.contOrg)}</label><input id="pc-org" placeholder="${esc(L.contOrgPh)}" value="${esc(c ? c.org : '')}"></div>
+      <div class="campo"><label for="pc-tel">WhatsApp / celular</label><input id="pc-tel" type="tel" placeholder="Ej. 300 123 4567" value="${esc(c ? c.tel : '')}"></div>
+      <div class="campo"><label for="pc-mail">Correo</label><input id="pc-mail" type="email" placeholder="Ej. laura@empresa.com" value="${esc(c ? c.mail : '')}"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" data-cerrar>Cancelar</button><button class="btn btn-peq" type="submit">Guardar contacto</button></div>
+    </form>`);
+  $('form', caja).addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const d = {id: c ? c.id : '', rol: c ? c.rol : PIPE.rol, nom: $('#pc-nom', caja).value.trim(), org: $('#pc-org', caja).value.trim(), tel: $('#pc-tel', caja).value.trim(), mail: $('#pc-mail', caja).value.trim()};
+    if (!d.nom) { avisar('Escribe el nombre del contacto.', 'error'); $('#pc-nom', caja).focus(); return; }
+    const b = $('[type=submit]', caja); bloquear(b, 'Guardando…');
+    try { pipeReemplazar('contactos', await llamarAdmin('crm_guardarContacto', {contacto: d})); cerrar(); pipeRender(); } catch (err) { desbloquear(b); avisar(err.message, 'error'); }
+  });
+}
+function pipeRenderContactos() {
+  const tb = $('#pipe-tabla'); if (!tb) return;
+  const q = pipeNorm(PIPE.buscar), todos = pipeContactos();
+  const lista = todos.filter(c => !q || [c.nom, c.org, c.tel, c.mail].some(x => pipeNorm(x).includes(q))).slice().reverse();
+  if (!lista.length) { tb.innerHTML = `<tr><td colspan="7" class="pipe-vacio">${todos.length ? 'Ningún contacto coincide con la búsqueda.' : 'Aún no hay contactos. Usa "+ Nuevo contacto" o "Traer del portal" en el embudo.'}</td></tr>`; return; }
+  const L = PIPE_LISTAS[PIPE.rol];
+  tb.innerHTML = lista.map(c => {
+    const ts = pipeTratosDe(c), val = ts.reduce((a, t) => a + (+t.v || 0), 0), w = pipeWa(c.tel);
+    return `<tr><td data-label="Nombre"><strong>${esc(c.nom)}</strong>${pipeEnOtraLista(c) ? `<span class="pipe-otro">${L.otro}</span>` : ''}</td><td data-label="${esc(L.contOrg)}">${esc(c.org)}</td><td data-label="Celular">${esc(c.tel)}</td><td data-label="Correo">${esc(c.mail)}</td><td data-label="Tratos">${ts.length}</td><td data-label="Valor">${pipeCop(val)}</td>
+      <td data-label="Acciones">${w ? `<a class="pipe-lnk" href="https://wa.me/${w}" target="_blank" rel="noopener">WhatsApp</a>` : ''}<button class="pipe-lnk" type="button" data-t="${esc(c.id)}">+ Trato</button><button class="pipe-lnk" type="button" data-e="${esc(c.id)}">Editar</button><button class="pipe-lnk del" type="button" data-b="${esc(c.id)}">Borrar</button></td></tr>`;
+  }).join('');
+  const buscarC = id => PIPE.datos.contactos.find(c => c.id === id);
+  $$('[data-e]', tb).forEach(b => b.onclick = () => pipeAbrirContacto(buscarC(b.dataset.e)));
+  $$('[data-b]', tb).forEach(b => b.onclick = async () => {
+    const c = buscarC(b.dataset.b); if (!c || !confirm(`¿Borrar el contacto "${c.nom}"? Sus tratos no se borran.`)) return;
+    PIPE.datos.contactos = PIPE.datos.contactos.filter(x => x.id !== c.id); pipeRenderContactos();
+    try { await llamarAdmin('crm_borrarContacto', {id: c.id}); } catch (err) { avisar(err.message, 'error'); pipeRecargar(); }
+  });
+  $$('[data-t]', tb).forEach(b => b.onclick = () => { const c = buscarC(b.dataset.t); pipeAbrirTrato('nuevo'); setTimeout(() => { const o = $('#pt-o'); if (o) o.value = c.org || c.nom; }, 0); });
+}
+
+/* Actividades */
+function pipeTodasAct() { const out = []; pipeTratos().forEach(t => (t.rec || []).forEach(r => out.push({t, r}))); return out.sort((a, b) => new Date(a.r.f) - new Date(b.r.f)); }
+function pipeRenderActividades() {
+  const L = $('#pipe-lista'); if (!L) return;
+  const all = pipeTodasAct(), pend = all.filter(x => !x.r.hecho);
+  const venc = pend.filter(x => pipeEstadoRec(x.r) === 'vencido'), hoy = pend.filter(x => pipeEstadoRec(x.r) === 'hoy'), prox = pend.filter(x => !pipeEstadoRec(x.r)), hech = all.filter(x => x.r.hecho);
+  const cnt = $('#pipe-cnt'); cnt.hidden = !(venc.length + hoy.length); cnt.textContent = venc.length + hoy.length;
+  $('#pipe-stats').innerHTML = `<div class="pipe-stat r"><span class="k">Vencidas</span><span class="v">${venc.length}</span></div><div class="pipe-stat a"><span class="k">Para hoy</span><span class="v">${hoy.length}</span></div><div class="pipe-stat"><span class="k">Próximas</span><span class="v">${prox.length}</span></div><div class="pipe-stat"><span class="k">Hechas</span><span class="v">${hech.length}</span></div>`;
+  const f = arr => PIPE.filtro === 'todas' ? arr : arr.filter(x => x.r.tipo === PIPE.filtro);
+  const item = ({t, r}) => {
+    const c = pipeContactoDe(t), w = c && pipeWa(c.tel), e = r.hecho ? '' : pipeEstadoRec(r);
+    return `<div class="pipe-act ${r.hecho ? 'done' : ''}" data-tid="${esc(t.id)}" data-rid="${esc(r.id)}"><span class="pipe-rchip ${e}">${PIPE_RICON[r.tipo] || ''}${PIPE_RTIPOS[r.tipo]}</span><div class="info"><span class="n">${esc(t.n)}</span><span class="o">${esc(t.o || '')}${c ? ' · ' + esc(c.nom) : ''}</span></div><span class="cuando">${pipeFecha(r.f)}</span>${r.tipo === 'whatsapp' && w ? `<a class="pipe-lnk" href="https://wa.me/${w}" target="_blank" rel="noopener">Abrir WhatsApp</a>` : ''}${r.tipo === 'llamar' && c && c.tel ? `<span class="o">${esc(c.tel)}</span>` : ''}${r.tipo === 'correo' && c && c.mail ? `<span class="o">${esc(c.mail)}</span>` : ''}<a class="pipe-lnk" href="${esc(pipeGcal(r, t))}" target="_blank" rel="noopener">Google Calendar</a><button class="pipe-lnk" type="button" data-a="hecho">${r.hecho ? 'Reabrir' : 'Marcar hecho'}</button><button class="pipe-lnk" type="button" data-a="ver">Ver trato</button></div>`;
+  };
+  const grupo = (tit, arr) => { const a = f(arr); return a.length ? `<div class="pipe-grupo"><h3>${tit} <b>(${a.length})</b></h3>${a.map(item).join('')}</div>` : ''; };
+  const html = grupo('Vencidas', venc) + grupo('Hoy', hoy) + grupo('Próximas', prox) + grupo('Hechas', hech.slice().reverse());
+  L.innerHTML = html || `<div class="pipe-vacio">No hay actividades${PIPE.filtro !== 'todas' ? ' de este tipo' : ''}. Usa "+ Nueva actividad" o agrega un recordatorio desde un trato.</div>`;
+  $$('.pipe-act', L).forEach(el => {
+    const t = PIPE.datos.tratos.find(z => z.id === el.dataset.tid), r = t && (t.rec || []).find(z => String(z.id) === el.dataset.rid); if (!r) return;
+    $('[data-a="hecho"]', el).onclick = () => { r.hecho = !r.hecho; pipeRender(); pipeGuardarTrato(t).catch(() => {}); };
+    $('[data-a="ver"]', el).onclick = () => pipeAbrirTrato(t.e, t, 'rec');
+  });
+}
+function pipeAbrirActividad() {
+  const tratos = pipeTratos();
+  if (!tratos.length) { pipeIrVista('embudo'); pipeAbrirTrato(); return; }
+  const {caja, cerrar} = abrirModal(`<h2 style="margin:0 0 12px;font-size:1.3rem">Nueva actividad</h2>
+    <form class="pipe-form" novalidate>
+      <div class="campo"><label for="pa-t">Trato</label><select id="pa-t">${tratos.map(t => `<option value="${esc(t.id)}">${esc(t.n)}${t.o ? ' · ' + esc(t.o) : ''}</option>`).join('')}</select></div>
+      <div class="campo"><label for="pa-tipo">Tipo</label><select id="pa-tipo">${Object.entries(PIPE_RTIPOS).map(([k, v]) => `<option value="${k}"${PIPE.filtro === k ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div class="campo"><label for="pa-f">Fecha y hora</label><input id="pa-f" type="datetime-local" required></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn btn-sec btn-peq" type="button" data-cerrar>Cancelar</button><button class="btn btn-peq" type="submit">Guardar actividad</button></div>
+    </form>`);
+  $('form', caja).addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const t = PIPE.datos.tratos.find(z => z.id === $('#pa-t', caja).value), f = $('#pa-f', caja).value;
+    if (!t) return; if (!f) { avisar('Elige la fecha y la hora.', 'error'); $('#pa-f', caja).focus(); return; }
+    const b = $('[type=submit]', caja); bloquear(b, 'Guardando…');
+    const copia = {...t, rec: [...(t.rec || []), {id: String(Date.now()), tipo: $('#pa-tipo', caja).value, f, hecho: false, avisado: false}]};
+    try { await pipeGuardarTrato(copia); cerrar(); pipeRender(); pipeRevisar(); } catch (err) { desbloquear(b); }
+  });
 }
 
 /* ---------- Página web: comentarios (testimonios y reseñas) ---------- */
